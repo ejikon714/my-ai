@@ -15,22 +15,10 @@
     }
 
     body {
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-
       margin: 0;
       min-height: 100vh;
-
-      background:
-        linear-gradient(
-          135deg,
-          #eef2ff,
-          #f8fafc
-        );
-
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #eef2ff, #f8fafc);
       color: #1e293b;
     }
 
@@ -38,73 +26,42 @@
       width: 100%;
       max-width: 480px;
       margin: 0 auto;
-      padding: 25px 18px 35px;
+      padding: 30px 18px 35px;
     }
-
-    /* ヘッダー */
 
     .header {
       text-align: center;
       margin-bottom: 25px;
     }
 
-    .logo {
-      width: 64px;
-      height: 64px;
-
-      margin: 0 auto 12px;
-
-      border-radius: 20px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      font-size: 32px;
-
-      background: white;
-
-      box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.08);
-    }
-
     h1 {
       margin: 0;
-      font-size: 28px;
+      font-size: 30px;
       font-weight: 800;
+      letter-spacing: 1px;
     }
 
     .subtitle {
-      margin-top: 6px;
+      margin-top: 8px;
       color: #64748b;
       font-size: 14px;
     }
 
-    /* カメラカード */
-
-    .camera-card {
+    .camera-card,
+    .result-card {
       background: white;
-
       border-radius: 25px;
-
       padding: 15px;
-
-      box-shadow:
-        0 12px 35px rgba(0, 0, 0, 0.10);
-
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.10);
       margin-bottom: 20px;
     }
 
     #webcam-container {
       width: 100%;
       aspect-ratio: 1 / 1;
-
       background: #0f172a;
-
       border-radius: 18px;
-
       overflow: hidden;
-
       display: flex;
       align-items: center;
       justify-content: center;
@@ -113,7 +70,6 @@
     #webcam {
       width: 100%;
       height: 100%;
-
       object-fit: cover;
     }
 
@@ -122,36 +78,20 @@
       font-size: 14px;
     }
 
-    /* ボタン */
-
     .buttons {
       display: flex;
       gap: 10px;
-
       margin-top: 15px;
     }
 
     button {
       flex: 1;
-
       border: none;
-
       padding: 15px 10px;
-
       border-radius: 15px;
-
       font-size: 16px;
       font-weight: 700;
-
       cursor: pointer;
-
-      transition:
-        transform 0.15s,
-        opacity 0.15s;
-    }
-
-    button:active {
-      transform: scale(0.96);
     }
 
     #start-button {
@@ -162,55 +102,30 @@
     #switch-button {
       background: #e2e8f0;
       color: #334155;
-
       display: none;
-    }
-
-    /* 認識結果 */
-
-    .result-card {
-      background: white;
-
-      border-radius: 25px;
-
-      padding: 20px;
-
-      box-shadow:
-        0 12px 35px rgba(0, 0, 0, 0.08);
     }
 
     .result-title {
       font-size: 18px;
       font-weight: 800;
-
       margin-bottom: 15px;
     }
 
     #label-container div {
       background: #f1f5f9;
-
       border-radius: 12px;
-
       padding: 12px 15px;
-
       margin-bottom: 8px;
-
       font-size: 16px;
       font-weight: 700;
     }
 
-    /* フッター */
-
     .footer {
       text-align: center;
-
       margin-top: 20px;
-
       color: #94a3b8;
-
       font-size: 12px;
     }
-
   </style>
 </head>
 
@@ -218,33 +133,19 @@
 
   <div class="app">
 
-    <!-- ヘッダー -->
-
     <div class="header">
-
-      <div class="logo">
-        🤖
-      </div>
-
       <h1>画像認識AI</h1>
-
       <div class="subtitle">
         カメラで画像を認識します
       </div>
-
     </div>
-
-
-    <!-- カメラ -->
 
     <div class="camera-card">
 
       <div id="webcam-container">
-
         <div class="camera-message">
           カメラを起動してください
         </div>
-
       </div>
 
       <div class="buttons">
@@ -253,44 +154,35 @@
           id="start-button"
           type="button"
           onclick="init()">
-
-          📷 カメラを起動
-
+          カメラを起動
         </button>
 
         <button
           id="switch-button"
           type="button"
           onclick="switchCamera()">
-
-          🔄 切り替え
-
+          カメラを切り替え
         </button>
 
       </div>
 
     </div>
 
-
-    <!-- 認識結果 -->
-
     <div class="result-card">
 
       <div class="result-title">
-        🔍 認識結果
+        認識結果
       </div>
 
       <div id="label-container"></div>
 
     </div>
 
-
     <div class="footer">
       Image Recognition AI
     </div>
 
   </div>
-
 
   <script>
 
@@ -299,7 +191,6 @@
     let model;
     let video;
     let stream = null;
-
     let labelContainer;
     let maxPredictions;
 
@@ -308,149 +199,91 @@
 
     let cameraStarted = false;
 
-
     async function init() {
 
-      // AIモデル読み込み
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
 
-      const modelURL =
-        URL + "model.json";
+      model = await tmImage.load(
+        modelURL,
+        metadataURL
+      );
 
-      const metadataURL =
-        URL + "metadata.json";
+      maxPredictions = model.getTotalClasses();
 
-      model =
-        await tmImage.load(
-          modelURL,
-          metadataURL
-        );
-
-      maxPredictions =
-        model.getTotalClasses();
-
-
-      // video作成
-
-      video =
-        document.createElement("video");
+      video = document.createElement("video");
 
       video.id = "webcam";
-
       video.autoplay = true;
       video.playsInline = true;
       video.muted = true;
 
+      document.getElementById(
+        "webcam-container"
+      ).innerHTML = "";
 
-      document
-        .getElementById(
-          "webcam-container"
-        )
-        .innerHTML = "";
-
-      document
-        .getElementById(
-          "webcam-container"
-        )
-        .appendChild(video);
-
-
-      // 認識結果
+      document.getElementById(
+        "webcam-container"
+      ).appendChild(video);
 
       labelContainer =
-        document.getElementById(
-          "label-container"
-        );
+        document.getElementById("label-container");
 
       labelContainer.innerHTML = "";
 
-
-      for (
-        let i = 0;
-        i < maxPredictions;
-        i++
-      ) {
-
+      for (let i = 0; i < maxPredictions; i++) {
         labelContainer.appendChild(
           document.createElement("div")
         );
-
       }
-
 
       await startCamera();
 
-
       document.getElementById(
         "switch-button"
-      ).style.display =
-        "block";
-
+      ).style.display = "block";
 
       document.getElementById(
         "start-button"
-      ).textContent =
-        "📷 起動中";
-
+      ).textContent = "カメラ起動中";
 
       cameraStarted = true;
-
     }
-
 
     async function startCamera() {
 
-      // 前のカメラを停止
-
       if (stream) {
 
-        stream
-          .getTracks()
-          .forEach(
-            track =>
-              track.stop()
-          );
+        stream.getTracks().forEach(
+          track => track.stop()
+        );
 
         stream = null;
-
       }
 
-
       const constraints = {
-
         video: {
-
-          facingMode:
-            facingMode,
-
+          facingMode: facingMode,
           width: {
             ideal: 640
           },
-
           height: {
             ideal: 480
           }
-
         },
-
         audio: false
-
       };
-
 
       try {
 
         stream =
-          await navigator
-            .mediaDevices
-            .getUserMedia(
-              constraints
-            );
+          await navigator.mediaDevices.getUserMedia(
+            constraints
+          );
 
-        video.srcObject =
-          stream;
+        video.srcObject = stream;
 
         await video.play();
-
 
       } catch (error) {
 
@@ -461,20 +294,12 @@
         );
 
         return;
-
       }
-
 
       if (!cameraStarted) {
-
-        window.requestAnimationFrame(
-          loop
-        );
-
+        window.requestAnimationFrame(loop);
       }
-
     }
-
 
     async function switchCamera() {
 
@@ -482,26 +307,14 @@
         return;
       }
 
-
-      if (
-        facingMode ===
-        "environment"
-      ) {
-
+      if (facingMode === "environment") {
         facingMode = "user";
-
       } else {
-
-        facingMode =
-          "environment";
-
+        facingMode = "environment";
       }
 
-
       await startCamera();
-
     }
-
 
     async function loop() {
 
@@ -512,25 +325,17 @@
       ) {
 
         await predict();
-
       }
 
-      window.requestAnimationFrame(
-        loop
-      );
-
+      window.requestAnimationFrame(loop);
     }
-
 
     async function predict() {
 
       try {
 
         const prediction =
-          await model.predict(
-            video
-          );
-
+          await model.predict(video);
 
         for (
           let i = 0;
@@ -539,34 +344,26 @@
         ) {
 
           const className =
-            prediction[i]
-              .className;
+            prediction[i].className;
 
           const probability =
             (
-              prediction[i]
-                .probability *
-              100
+              prediction[i].probability * 100
             ).toFixed(1);
-
 
           labelContainer
             .childNodes[i]
             .innerHTML =
-
               className +
               "　" +
               probability +
               "%";
-
         }
 
       } catch (error) {
 
         console.error(error);
-
       }
-
     }
 
   </script>
