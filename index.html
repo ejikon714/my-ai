@@ -22,8 +22,8 @@
 
 <title>画像認識AI</title>
 
-<script src="./tf.min.js"></script>
-<script src="./teachablemachine-image.min.js"></script>
+<script src="./modle/tf.min.js"></script>
+<script src="./modle/teachablemachine-image.min.js"></script>
 
 <style>
 * {
@@ -452,8 +452,8 @@ Image Recognition AI
  * AI判定は model.predict() により端末内で実行。
  */
 
-const MODEL_URL = "../model.json";
-const METADATA_URL = "../metadata.json";
+const MODEL_URL = "./model.json";
+const METADATA_URL = "./metadata.json";
 
 let model = null;
 let video = null;
