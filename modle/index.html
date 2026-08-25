@@ -1,4 +1,9 @@
 ```html
+<!--
+  このコードでは撮影画像を外部サーバーへ送信しません。
+  写真はブラウザ内のCanvasで処理します。
+-->
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -43,7 +48,6 @@
       margin: 0;
       font-size: 30px;
       font-weight: 800;
-      letter-spacing: 1px;
     }
 
     .subtitle {
@@ -56,7 +60,7 @@
       background: white;
       border-radius: 24px;
       padding: 15px;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.10);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.10);
       margin-bottom: 18px;
     }
 
@@ -69,7 +73,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
     }
 
     #webcam {
@@ -77,14 +80,12 @@
       height: 100%;
       object-fit: cover;
       transform-origin: center center;
-      transition: transform 0.2s ease;
     }
 
     .camera-message {
       color: #94a3b8;
       font-size: 14px;
       text-align: center;
-      padding: 20px;
     }
 
     .buttons {
@@ -101,11 +102,6 @@
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.12s, opacity 0.12s;
-    }
-
-    button:active {
-      transform: scale(0.96);
     }
 
     #start-button {
@@ -115,52 +111,85 @@
     }
 
     #switch-button {
+      display: none;
       background: #e2e8f0;
       color: #334155;
-      display: none;
     }
 
     #stop-button {
+      display: none;
       background: #ef4444;
       color: white;
+    }
+
+    #capture-button {
       display: none;
+      grid-column: 1 / -1;
+      background: #16a34a;
+      color: white;
+      font-size: 16px;
     }
 
     #zoom-controls {
       display: none;
-      margin-top: 17px;
+      margin-top: 16px;
     }
 
     .zoom-title {
       text-align: center;
       color: #64748b;
       font-size: 13px;
-      margin-bottom: 9px;
+      margin-bottom: 8px;
     }
 
     .zoom-buttons {
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       gap: 16px;
     }
 
     .zoom-button {
-      flex: none;
       width: 55px;
       height: 48px;
       padding: 0;
-      border-radius: 14px;
       background: #e2e8f0;
       color: #334155;
       font-size: 24px;
     }
 
     #zoom-value {
-      min-width: 65px;
+      min-width: 60px;
       text-align: center;
-      font-size: 18px;
       font-weight: 800;
+    }
+
+    #photo-area {
+      display: none;
+      margin-top: 18px;
+    }
+
+    #captured-photo {
+      width: 100%;
+      border-radius: 16px;
+      display: block;
+    }
+
+    #download-button {
+      width: 100%;
+      margin-top: 10px;
+      background: #7c3aed;
+      color: white;
+    }
+
+    .privacy {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #f0fdf4;
+      color: #166534;
+      font-size: 12px;
+      text-align: center;
     }
 
     .result-title {
@@ -169,13 +198,9 @@
       margin-bottom: 14px;
     }
 
-    /*
-      最も高い認識結果
-      最初は完全に非表示
-    */
     #highest-result {
       display: none;
-      background: linear-gradient(135deg, #eff6ff, #f8fafc);
+      background: #eff6ff;
       border-radius: 18px;
       padding: 17px;
       margin-bottom: 18px;
@@ -185,19 +210,18 @@
     .highest-label {
       color: #64748b;
       font-size: 12px;
-      margin-bottom: 5px;
     }
 
     #highest-name {
       font-size: 24px;
       font-weight: 800;
-      margin-bottom: 4px;
+      margin: 5px 0;
     }
 
     #highest-percent {
+      color: #2563eb;
       font-size: 19px;
       font-weight: 800;
-      color: #2563eb;
     }
 
     .result-item {
@@ -206,24 +230,13 @@
 
     .result-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
       margin-bottom: 7px;
     }
 
-    .result-name {
-      font-size: 15px;
-      font-weight: 700;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
+    .result-name,
     .result-percent {
-      flex-shrink: 0;
-      font-size: 15px;
-      font-weight: 800;
+      font-weight: 700;
     }
 
     .bar-background {
@@ -239,7 +252,6 @@
       height: 100%;
       background: #2563eb;
       border-radius: 999px;
-      transition: width 0.2s ease;
     }
 
     .footer {
@@ -248,956 +260,887 @@
       color: #94a3b8;
       font-size: 12px;
     }
-
-    @media (max-width: 360px) {
-      .app {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-
-      h1 {
-        font-size: 26px;
-      }
-
-      button {
-        font-size: 13px;
-      }
-    }
   </style>
 </head>
 
 <body>
 
-  <div class="app">
+<div class="app">
 
-    <div class="header">
-      <h1>画像認識AI</h1>
+  <div class="header">
+    <h1>画像認識AI</h1>
+    <div class="subtitle">
+      カメラで画像を認識します
+    </div>
+  </div>
 
-      <div class="subtitle">
-        カメラで画像を認識します
+  <div class="card">
+
+    <div id="webcam-container">
+      <div class="camera-message">
+        カメラを起動してください
       </div>
     </div>
 
+    <div class="buttons">
 
-    <div class="card">
+      <button
+        id="start-button"
+        type="button"
+        onclick="init()">
+        📷 カメラを起動
+      </button>
 
-      <div id="webcam-container">
-        <div class="camera-message">
-          カメラを起動してください
-        </div>
+      <button
+        id="switch-button"
+        type="button"
+        onclick="switchCamera()">
+        🔄 カメラ切り替え
+      </button>
+
+      <button
+        id="stop-button"
+        type="button"
+        onclick="stopCamera()">
+        ⛔ カメラOFF
+      </button>
+
+      <button
+        id="capture-button"
+        type="button"
+        onclick="capturePhoto()">
+        📸 写真を撮影
+      </button>
+
+    </div>
+
+    <div id="zoom-controls">
+
+      <div class="zoom-title">
+        デジタルズーム
       </div>
 
-
-      <div class="buttons">
-
-        <button
-          id="start-button"
-          type="button"
-          onclick="init()">
-          カメラを起動
-        </button>
+      <div class="zoom-buttons">
 
         <button
-          id="switch-button"
-          type="button"
-          onclick="switchCamera()">
-          🔄 カメラ切り替え
+          class="zoom-button"
+          onclick="changeZoom(-0.5)">
+          −
         </button>
 
-        <button
-          id="stop-button"
-          type="button"
-          onclick="stopCamera()">
-          ⛔ カメラOFF
-        </button>
-
-      </div>
-
-
-      <div id="zoom-controls">
-
-        <div class="zoom-title">
-          デジタルズーム
+        <div id="zoom-value">
+          1.0×
         </div>
 
-        <div class="zoom-buttons">
-
-          <button
-            class="zoom-button"
-            type="button"
-            onclick="changeZoom(-0.5)">
-            −
-          </button>
-
-          <div id="zoom-value">
-            1.0×
-          </div>
-
-          <button
-            class="zoom-button"
-            type="button"
-            onclick="changeZoom(0.5)">
-            ＋
-          </button>
-
-        </div>
+        <button
+          class="zoom-button"
+          onclick="changeZoom(0.5)">
+          ＋
+        </button>
 
       </div>
 
     </div>
 
+    <div id="photo-area">
 
-    <div class="card">
+      <img
+        id="captured-photo"
+        alt="撮影した写真">
 
-      <div class="result-title">
-        認識結果
+      <button
+        id="download-button"
+        onclick="downloadPhoto()">
+        💾 写真を保存
+      </button>
+
+      <div class="privacy">
+        🔒 この写真はこのページ内だけで処理されます。
+        AIから外部サーバーへ写真を送信する処理はありません。
       </div>
 
-
-      <!--
-        カメラOFF時はこの部分も完全に非表示
-      -->
-
-      <div id="highest-result">
-
-        <div class="highest-label">
-          最も高い認識結果
-        </div>
-
-        <div id="highest-name"></div>
-
-        <div id="highest-percent"></div>
-
-      </div>
-
-
-      <div id="label-container"></div>
-
-    </div>
-
-
-    <div class="footer">
-      Image Recognition AI
     </div>
 
   </div>
 
 
-  <script>
+  <div class="card">
 
-    /*
-      =========================
-      基本設定
-      =========================
-    */
+    <div class="result-title">
+      認識結果
+    </div>
 
-    const URL = "./";
+    <div id="highest-result">
 
-    let model = null;
+      <div class="highest-label">
+        最も高い認識結果
+      </div>
 
-    let video = null;
+      <div id="highest-name"></div>
 
-    let stream = null;
+      <div id="highest-percent"></div>
 
-    let labelContainer = null;
+    </div>
 
-    let maxPredictions = 0;
+    <div id="label-container"></div>
 
-    let cameraActive = false;
+  </div>
 
-    /*
-      最初は背面カメラ
-    */
-    let facingMode = "environment";
 
-    /*
-      デジタルズーム
-    */
-    let currentZoom = 1.0;
+  <div class="footer">
+    Image Recognition AI
+  </div>
 
-    const MIN_ZOOM = 1.0;
+</div>
 
-    const MAX_ZOOM = 3.0;
 
-    const ZOOM_STEP = 0.5;
+<script>
 
+const URL = "./";
 
-    /*
-      =========================
-      AI・カメラ起動
-      =========================
-    */
+let model = null;
+let video = null;
+let stream = null;
+let labelContainer = null;
+let maxPredictions = 0;
 
-    async function init() {
+let cameraActive = false;
 
-      try {
+let facingMode = "environment";
 
-        /*
-          AIモデルを読み込む
-        */
+let currentZoom = 1.0;
 
-        if (!model) {
+const MIN_ZOOM = 1.0;
+const MAX_ZOOM = 3.0;
 
-          const modelURL =
-            URL + "model.json";
 
-          const metadataURL =
-            URL + "metadata.json";
+/*
+  撮影した写真を一時的に保持
+  外部へ送信しない
+*/
+let capturedDataURL = null;
 
-          model =
-            await tmImage.load(
-              modelURL,
-              metadataURL
-            );
 
-          maxPredictions =
-            model.getTotalClasses();
-        }
+/*
+  =========================
+  AI起動
+  =========================
+*/
 
+async function init() {
 
-        /*
-          videoを作成
-        */
+  try {
 
-        video =
-          document.createElement("video");
+    if (!model) {
 
-        video.id = "webcam";
+      model = await tmImage.load(
+        URL + "model.json",
+        URL + "metadata.json"
+      );
 
-        video.autoplay = true;
-
-        video.playsInline = true;
-
-        video.muted = true;
-
-
-        /*
-          カメラ画面を入れ替える
-        */
-
-        const container =
-          document.getElementById(
-            "webcam-container"
-          );
-
-        container.innerHTML = "";
-
-        container.appendChild(video);
-
-
-        /*
-          認識結果欄を作る
-        */
-
-        labelContainer =
-          document.getElementById(
-            "label-container"
-          );
-
-        labelContainer.innerHTML = "";
-
-
-        for (
-          let i = 0;
-          i < maxPredictions;
-          i++
-        ) {
-
-          const item =
-            document.createElement("div");
-
-          item.className =
-            "result-item";
-
-
-          item.innerHTML = `
-
-            <div class="result-header">
-
-              <span class="result-name">
-              </span>
-
-              <span class="result-percent">
-              </span>
-
-            </div>
-
-            <div class="bar-background">
-
-              <div class="bar">
-              </div>
-
-            </div>
-
-          `;
-
-
-          labelContainer.appendChild(item);
-        }
-
-
-        /*
-          カメラ開始
-        */
-
-        await startCamera();
-
-
-        if (!cameraActive) {
-
-          return;
-
-        }
-
-
-        /*
-          ボタン表示
-        */
-
-        document.getElementById(
-          "start-button"
-        ).style.display = "none";
-
-
-        document.getElementById(
-          "switch-button"
-        ).style.display = "block";
-
-
-        document.getElementById(
-          "stop-button"
-        ).style.display = "block";
-
-
-        document.getElementById(
-          "zoom-controls"
-        ).style.display = "block";
-
-
-        /*
-          ズーム初期化
-        */
-
-        currentZoom = 1.0;
-
-        updateZoom();
-
-
-        /*
-          認識開始
-        */
-
-        requestAnimationFrame(loop);
-
-
-      } catch (error) {
-
-        console.error(error);
-
-        alert(
-          "AIまたはカメラの起動に失敗しました。"
-        );
-
-      }
-
+      maxPredictions =
+        model.getTotalClasses();
     }
 
 
-    /*
-      =========================
-      カメラ開始
-      =========================
-    */
+    video =
+      document.createElement("video");
 
-    async function startCamera() {
+    video.id = "webcam";
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
 
-      /*
-        既存カメラを停止
-      */
 
-      if (stream) {
+    const container =
+      document.getElementById(
+        "webcam-container"
+      );
 
-        stream
-          .getTracks()
-          .forEach(track => {
-            track.stop();
-          });
+    container.innerHTML = "";
+    container.appendChild(video);
 
-        stream = null;
 
-      }
+    labelContainer =
+      document.getElementById(
+        "label-container"
+      );
 
+    labelContainer.innerHTML = "";
 
-      const constraints = {
 
-        video: {
+    for (
+      let i = 0;
+      i < maxPredictions;
+      i++
+    ) {
 
-          facingMode: facingMode,
+      const item =
+        document.createElement("div");
 
-          width: {
-            ideal: 1280
-          },
+      item.className =
+        "result-item";
 
-          height: {
-            ideal: 720
-          }
-
-        },
-
-        audio: false
-
-      };
-
-
-      try {
-
-        stream =
-          await navigator
-            .mediaDevices
-            .getUserMedia(
-              constraints
-            );
-
-
-        video.srcObject =
-          stream;
-
-
-        await video.play();
-
-
-        cameraActive = true;
-
-
-        currentZoom = 1.0;
-
-
-        updateZoom();
-
-
-      } catch (error) {
-
-        console.error(error);
-
-
-        cameraActive = false;
-
-
-        alert(
-          "カメラを起動できませんでした。\n\nブラウザのカメラ使用許可を確認してください。"
-        );
-
-      }
-
-    }
-
-
-    /*
-      =========================
-      前後カメラ切り替え
-      =========================
-    */
-
-    async function switchCamera() {
-
-      if (!cameraActive) {
-
-        return;
-
-      }
-
-
-      if (
-        facingMode === "environment"
-      ) {
-
-        facingMode = "user";
-
-      } else {
-
-        facingMode = "environment";
-
-      }
-
-
-      await startCamera();
-
-    }
-
-
-    /*
-      =========================
-      カメラOFF
-      =========================
-
-      ★ここが重要
-
-      カメラOFF時に、
-
-      ・カメラ映像
-      ・ズーム
-      ・最も高い認識結果
-      ・認識率
-      ・認識率バー
-      ・カメラ切り替えボタン
-
-      をすべて消して、
-
-      最初の画面に戻す。
-      =========================
-    */
-
-    function stopCamera() {
-
-      /*
-        カメラを完全停止
-      */
-
-      if (stream) {
-
-        stream
-          .getTracks()
-          .forEach(track => {
-            track.stop();
-          });
-
-        stream = null;
-
-      }
-
-
-      cameraActive = false;
-
-
-      /*
-        videoを停止
-      */
-
-      if (video) {
-
-        video.pause();
-
-        video.srcObject = null;
-
-      }
-
-
-      video = null;
-
-
-      /*
-        ズームを初期値へ
-      */
-
-      currentZoom = 1.0;
-
-
-      /*
-        カメラ画面を
-        最初の状態へ戻す
-      */
-
-      const container =
-        document.getElementById(
-          "webcam-container"
-        );
-
-
-      container.innerHTML = `
-
-        <div class="camera-message">
-          カメラを起動してください
+      item.innerHTML = `
+        <div class="result-header">
+          <span class="result-name"></span>
+          <span class="result-percent"></span>
         </div>
 
+        <div class="bar-background">
+          <div class="bar"></div>
+        </div>
       `;
 
-
-      /*
-        起動ボタンだけ表示
-      */
-
-      document.getElementById(
-        "start-button"
-      ).style.display = "block";
-
-
-      document.getElementById(
-        "switch-button"
-      ).style.display = "none";
-
-
-      document.getElementById(
-        "stop-button"
-      ).style.display = "none";
-
-
-      /*
-        ズームを完全に非表示
-      */
-
-      document.getElementById(
-        "zoom-controls"
-      ).style.display = "none";
-
-
-      /*
-        ======================
-        最も高い認識結果を消す
-        ======================
-      */
-
-      const highestResult =
-        document.getElementById(
-          "highest-result"
-        );
-
-
-      if (highestResult) {
-
-        highestResult.style.display =
-          "none";
-
-      }
-
-
-      /*
-        名前を消す
-      */
-
-      const highestName =
-        document.getElementById(
-          "highest-name"
-        );
-
-
-      if (highestName) {
-
-        highestName.textContent = "";
-
-      }
-
-
-      /*
-        認識率を消す
-      */
-
-      const highestPercent =
-        document.getElementById(
-          "highest-percent"
-        );
-
-
-      if (highestPercent) {
-
-        highestPercent.textContent = "";
-
-      }
-
-
-      /*
-        ======================
-        全認識結果を消す
-        ======================
-      */
-
-      if (labelContainer) {
-
-        labelContainer.innerHTML = "";
-
-      }
-
-
-      labelContainer = null;
-
+      labelContainer.appendChild(item);
     }
 
 
-    /*
-      =========================
-      デジタルズーム変更
-      =========================
-    */
-
-    function changeZoom(amount) {
-
-      if (
-        !cameraActive ||
-        !video
-      ) {
-
-        return;
-
-      }
+    await startCamera();
 
 
-      currentZoom += amount;
-
-
-      /*
-        1.0～3.0倍に制限
-      */
-
-      currentZoom =
-        Math.max(
-          MIN_ZOOM,
-          Math.min(
-            MAX_ZOOM,
-            currentZoom
-          )
-        );
-
-
-      updateZoom();
-
+    if (!cameraActive) {
+      return;
     }
 
 
-    /*
-      =========================
-      ズーム表示更新
-      =========================
-    */
-
-    function updateZoom() {
-
-      const zoomValue =
-        document.getElementById(
-          "zoom-value"
-        );
+    document.getElementById(
+      "start-button"
+    ).style.display = "none";
 
 
-      if (zoomValue) {
-
-        zoomValue.textContent =
-          currentZoom.toFixed(1) +
-          "×";
-
-      }
+    document.getElementById(
+      "switch-button"
+    ).style.display = "block";
 
 
-      if (video) {
+    document.getElementById(
+      "stop-button"
+    ).style.display = "block";
 
-        video.style.transform =
-          "scale(" +
-          currentZoom +
-          ")";
 
-      }
+    document.getElementById(
+      "capture-button"
+    ).style.display = "block";
 
+
+    document.getElementById(
+      "zoom-controls"
+    ).style.display = "block";
+
+
+    document.getElementById(
+      "photo-area"
+    ).style.display = "none";
+
+
+    currentZoom = 1.0;
+    updateZoom();
+
+
+    requestAnimationFrame(loop);
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "AIまたはカメラの起動に失敗しました。"
+    );
+  }
+}
+
+
+/*
+  =========================
+  カメラ開始
+  =========================
+*/
+
+async function startCamera() {
+
+  if (stream) {
+
+    stream
+      .getTracks()
+      .forEach(track => track.stop());
+
+    stream = null;
+  }
+
+
+  try {
+
+    stream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          video: {
+            facingMode: facingMode,
+            width: {
+              ideal: 1280
+            },
+            height: {
+              ideal: 720
+            }
+          },
+
+          audio: false
+
+        });
+
+
+    video.srcObject = stream;
+
+    await video.play();
+
+    cameraActive = true;
+
+    currentZoom = 1.0;
+
+    updateZoom();
+
+  } catch (error) {
+
+    console.error(error);
+
+    cameraActive = false;
+
+    alert(
+      "カメラを起動できませんでした。"
+    );
+  }
+}
+
+
+/*
+  =========================
+  前後カメラ
+  =========================
+*/
+
+async function switchCamera() {
+
+  if (!cameraActive) {
+    return;
+  }
+
+
+  facingMode =
+    facingMode === "environment"
+      ? "user"
+      : "environment";
+
+
+  await startCamera();
+}
+
+
+/*
+  =========================
+  写真撮影
+  =========================
+*/
+
+function capturePhoto() {
+
+  if (
+    !cameraActive ||
+    !video
+  ) {
+    return;
+  }
+
+
+  /*
+    Canvasをブラウザ内だけで作成
+  */
+
+  const canvas =
+    document.createElement("canvas");
+
+
+  const width =
+    video.videoWidth || 640;
+
+  const height =
+    video.videoHeight || 480;
+
+
+  canvas.width = width;
+  canvas.height = height;
+
+
+  const ctx =
+    canvas.getContext("2d");
+
+
+  /*
+    デジタルズームを
+    撮影画像にも反映
+  */
+
+  ctx.save();
+
+  ctx.translate(
+    width / 2,
+    height / 2
+  );
+
+  ctx.scale(
+    currentZoom,
+    currentZoom
+  );
+
+  ctx.drawImage(
+    video,
+    -width / 2,
+    -height / 2,
+    width,
+    height
+  );
+
+  ctx.restore();
+
+
+  /*
+    Canvasから画像を作る。
+    この処理はブラウザ内だけ。
+  */
+
+  capturedDataURL =
+    canvas.toDataURL(
+      "image/jpeg",
+      0.92
+    );
+
+
+  /*
+    撮影画像を画面に表示
+  */
+
+  const photo =
+    document.getElementById(
+      "captured-photo"
+    );
+
+  photo.src =
+    capturedDataURL;
+
+
+  document.getElementById(
+    "photo-area"
+  ).style.display = "block";
+
+
+  /*
+    撮影時点の画像をAIでも判定
+  */
+
+  predictPhoto(canvas);
+}
+
+
+/*
+  =========================
+  撮影画像のAI認識
+  =========================
+*/
+
+async function predictPhoto(canvas) {
+
+  if (!model) {
+    return;
+  }
+
+
+  try {
+
+    const prediction =
+      await model.predict(canvas);
+
+
+    showPrediction(prediction);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+}
+
+
+/*
+  =========================
+  認識結果表示
+  =========================
+*/
+
+function showPrediction(prediction) {
+
+  if (!labelContainer) {
+    return;
+  }
+
+
+  let highestIndex = 0;
+
+  let highestProbability =
+    prediction[0].probability;
+
+
+  for (
+    let i = 1;
+    i < prediction.length;
+    i++
+  ) {
+
+    if (
+      prediction[i].probability >
+      highestProbability
+    ) {
+
+      highestProbability =
+        prediction[i].probability;
+
+      highestIndex = i;
+    }
+  }
+
+
+  const highest =
+    prediction[highestIndex];
+
+
+  document.getElementById(
+    "highest-result"
+  ).style.display = "block";
+
+
+  document.getElementById(
+    "highest-name"
+  ).textContent =
+    highest.className;
+
+
+  document.getElementById(
+    "highest-percent"
+  ).textContent =
+    (
+      highest.probability * 100
+    ).toFixed(1) + "%";
+
+
+  for (
+    let i = 0;
+    i < prediction.length;
+    i++
+  ) {
+
+    const item =
+      labelContainer.children[i];
+
+    if (!item) {
+      continue;
     }
 
 
-    /*
-      =========================
-      AI認識ループ
-      =========================
-    */
-
-    async function loop() {
-
-      /*
-        カメラがONのときだけ認識
-      */
-
-      if (
-        cameraActive &&
-        video &&
-        video.readyState >= 2 &&
-        model
-      ) {
-
-        await predict();
-
-      }
+    const value =
+      prediction[i].probability * 100;
 
 
-      /*
-        カメラがONなら続ける
+    item.querySelector(
+      ".result-name"
+    ).textContent =
+      prediction[i].className;
 
-        OFFになったらここで停止
-      */
 
-      if (cameraActive) {
+    item.querySelector(
+      ".result-percent"
+    ).textContent =
+      value.toFixed(1) + "%";
 
-        requestAnimationFrame(loop);
 
-      }
+    item.querySelector(
+      ".bar"
+    ).style.width =
+      value + "%";
+  }
+}
+
+
+/*
+  =========================
+  リアルタイム認識
+  =========================
+*/
+
+async function loop() {
+
+  if (
+    cameraActive &&
+    video &&
+    video.readyState >= 2 &&
+    model
+  ) {
+
+    try {
+
+      const prediction =
+        await model.predict(video);
+
+      showPrediction(prediction);
+
+    } catch (error) {
+
+      console.error(error);
 
     }
+  }
 
 
-    /*
-      =========================
-      AI認識
-      =========================
-    */
+  if (cameraActive) {
 
-    async function predict() {
-
-      /*
-        OFFなら何もしない
-      */
-
-      if (
-        !cameraActive ||
-        !video ||
-        !model ||
-        !labelContainer
-      ) {
-
-        return;
-
-      }
+    requestAnimationFrame(loop);
+  }
+}
 
 
-      try {
+/*
+  =========================
+  ズーム
+  =========================
+*/
 
-        const prediction =
-          await model.predict(video);
+function changeZoom(amount) {
 
-
-        /*
-          ======================
-          最も高い認識結果を探す
-          ======================
-        */
-
-        let highestIndex = 0;
-
-        let highestProbability =
-          prediction[0].probability;
+  if (
+    !cameraActive ||
+    !video
+  ) {
+    return;
+  }
 
 
-        for (
-          let i = 1;
-          i < maxPredictions;
-          i++
-        ) {
-
-          if (
-            prediction[i].probability >
-            highestProbability
-          ) {
-
-            highestProbability =
-              prediction[i].probability;
-
-            highestIndex = i;
-
-          }
-
-        }
+  currentZoom += amount;
 
 
-        const highest =
-          prediction[highestIndex];
+  currentZoom =
+    Math.max(
+      MIN_ZOOM,
+      Math.min(
+        MAX_ZOOM,
+        currentZoom
+      )
+    );
 
 
-        /*
-          最も高い認識結果を表示
-        */
-
-        const highestResult =
-          document.getElementById(
-            "highest-result"
-          );
+  updateZoom();
+}
 
 
-        if (highestResult) {
+function updateZoom() {
 
-          highestResult.style.display =
-            "block";
-
-        }
-
-
-        document.getElementById(
-          "highest-name"
-        ).textContent =
-          highest.className;
+  const zoomValue =
+    document.getElementById(
+      "zoom-value"
+    );
 
 
-        document.getElementById(
-          "highest-percent"
-        ).textContent =
-          (
-            highest.probability * 100
-          ).toFixed(1) + "%";
+  if (zoomValue) {
+
+    zoomValue.textContent =
+      currentZoom.toFixed(1) + "×";
+  }
 
 
-        /*
-          ======================
-          全認識結果
-          ======================
-        */
+  if (video) {
 
-        for (
-          let i = 0;
-          i < maxPredictions;
-          i++
-        ) {
-
-          const item =
-            labelContainer.children[i];
+    video.style.transform =
+      "scale(" +
+      currentZoom +
+      ")";
+  }
+}
 
 
-          if (!item) {
+/*
+  =========================
+  写真保存
+  =========================
+*/
 
-            continue;
+function downloadPhoto() {
 
-          }
-
-
-          const name =
-            item.querySelector(
-              ".result-name"
-            );
-
-
-          const percent =
-            item.querySelector(
-              ".result-percent"
-            );
+  if (!capturedDataURL) {
+    return;
+  }
 
 
-          const bar =
-            item.querySelector(
-              ".bar"
-            );
+  const link =
+    document.createElement("a");
 
 
-          const value =
-            prediction[i].probability *
-            100;
+  link.href =
+    capturedDataURL;
 
 
-          name.textContent =
-            prediction[i].className;
+  link.download =
+    "image-recognition-photo.jpg";
 
 
-          percent.textContent =
-            value.toFixed(1) + "%";
+  /*
+    ブラウザの保存機能を使用。
+    サーバーへアップロードしない。
+  */
+
+  link.click();
+}
 
 
-          bar.style.width =
-            value + "%";
+/*
+  =========================
+  カメラOFF
+  =========================
 
-        }
+  ★撮影画像も消去
+  ★認識結果も消去
+  ★最初の画面へ戻る
+  =========================
+*/
 
-      } catch (error) {
+function stopCamera() {
 
-        /*
-          カメラOFF直後などのエラーは
-          コンソールだけに表示
-        */
+  if (stream) {
 
-        console.error(error);
+    stream
+      .getTracks()
+      .forEach(track => {
+        track.stop();
+      });
 
-      }
+    stream = null;
+  }
 
-    }
 
-  </script>
+  cameraActive = false;
+
+
+  if (video) {
+
+    video.pause();
+
+    video.srcObject = null;
+  }
+
+
+  video = null;
+
+
+  /*
+    撮影画像をメモリから消す
+  */
+
+  capturedDataURL = null;
+
+
+  /*
+    カメラ画面を初期状態へ
+  */
+
+  document.getElementById(
+    "webcam-container"
+  ).innerHTML = `
+    <div class="camera-message">
+      カメラを起動してください
+    </div>
+  `;
+
+
+  /*
+    ボタンを初期状態へ
+  */
+
+  document.getElementById(
+    "start-button"
+  ).style.display = "block";
+
+
+  document.getElementById(
+    "switch-button"
+  ).style.display = "none";
+
+
+  document.getElementById(
+    "stop-button"
+  ).style.display = "none";
+
+
+  document.getElementById(
+    "capture-button"
+  ).style.display = "none";
+
+
+  document.getElementById(
+    "zoom-controls"
+  ).style.display = "none";
+
+
+  /*
+    撮影画像を画面から消す
+  */
+
+  document.getElementById(
+    "photo-area"
+  ).style.display = "none";
+
+
+  document.getElementById(
+    "captured-photo"
+  ).removeAttribute("src");
+
+
+  /*
+    最も高い認識結果を消す
+  */
+
+  document.getElementById(
+    "highest-result"
+  ).style.display = "none";
+
+
+  document.getElementById(
+    "highest-name"
+  ).textContent = "";
+
+
+  document.getElementById(
+    "highest-percent"
+  ).textContent = "";
+
+
+  /*
+    全認識結果を消す
+  */
+
+  if (labelContainer) {
+
+    labelContainer.innerHTML = "";
+  }
+
+
+  labelContainer = null;
+
+
+  /*
+    ズーム初期化
+  */
+
+  currentZoom = 1.0;
+}
+
+</script>
 
 </body>
 </html>
