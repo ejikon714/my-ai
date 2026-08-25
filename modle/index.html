@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -15,13 +16,9 @@
     }
 
     body {
-      font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
       margin: 0;
       min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: linear-gradient(135deg, #eef2ff, #f8fafc);
       color: #1e293b;
     }
@@ -80,6 +77,7 @@
     .camera-message {
       color: #94a3b8;
       font-size: 14px;
+      text-align: center;
     }
 
     .buttons {
@@ -96,6 +94,11 @@
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    button:active {
+      transform: scale(0.97);
     }
 
     #start-button {
@@ -106,6 +109,12 @@
     #switch-button {
       background: #e2e8f0;
       color: #334155;
+      display: none;
+    }
+
+    #stop-button {
+      background: #ef4444;
+      color: white;
       display: none;
     }
 
@@ -139,32 +148,53 @@
 
     <div class="header">
       <h1>画像認識AI</h1>
+
       <div class="subtitle">
         カメラで画像を認識します
       </div>
     </div>
 
+
     <div class="camera-card">
 
       <div id="webcam-container">
+
         <div class="camera-message">
           カメラを起動してください
         </div>
+
       </div>
+
 
       <div class="buttons">
 
-        <button id="start-button" type="button" onclick="init()">
+        <button
+          id="start-button"
+          type="button"
+          onclick="init()">
           カメラを起動
         </button>
 
-        <button id="switch-button" type="button" onclick="switchCamera()">
+
+        <button
+          id="switch-button"
+          type="button"
+          onclick="switchCamera()">
           カメラを切り替え
+        </button>
+
+
+        <button
+          id="stop-button"
+          type="button"
+          onclick="stopCamera()">
+          カメラをオフ
         </button>
 
       </div>
 
     </div>
+
 
     <div class="result-card">
 
@@ -176,11 +206,13 @@
 
     </div>
 
+
     <div class="footer">
       Image Recognition AI
     </div>
 
   </div>
+
 
   <script>
 
@@ -189,146 +221,357 @@
     let model;
     let video;
     let stream = null;
+
     let labelContainer;
     let maxPredictions;
 
+    // 最初は背面カメラ
     let facingMode = "environment";
-    let cameraStarted = false;
+
+    // カメラが動いているか
+    let cameraActive = false;
+
+
+    // =========================
+    // カメラ起動
+    // =========================
 
     async function init() {
 
-      const modelURL = URL + "model.json";
-      const metadataURL = URL + "metadata.json";
+      // AIモデルをまだ読み込んでいない場合だけ読み込む
+      if (!model) {
 
-      model = await tmImage.load(
-        modelURL,
-        metadataURL
-      );
+        const modelURL =
+          URL + "model.json";
 
-      maxPredictions = model.getTotalClasses();
+        const metadataURL =
+          URL + "metadata.json";
 
-      video = document.createElement("video");
+        model = await tmImage.load(
+          modelURL,
+          metadataURL
+        );
+
+        maxPredictions =
+          model.getTotalClasses();
+
+      }
+
+
+      // videoを作成
+      video =
+        document.createElement("video");
 
       video.id = "webcam";
+
       video.autoplay = true;
       video.playsInline = true;
       video.muted = true;
 
-      document.getElementById(
-        "webcam-container"
-      ).innerHTML = "";
 
-      document.getElementById(
-        "webcam-container"
-      ).appendChild(video);
+      const container =
+        document.getElementById(
+          "webcam-container"
+        );
 
+
+      container.innerHTML = "";
+
+      container.appendChild(video);
+
+
+      // 認識結果欄
       labelContainer =
-        document.getElementById("label-container");
+        document.getElementById(
+          "label-container"
+        );
+
 
       labelContainer.innerHTML = "";
 
-      for (let i = 0; i < maxPredictions; i++) {
+
+      for (
+        let i = 0;
+        i < maxPredictions;
+        i++
+      ) {
+
         labelContainer.appendChild(
           document.createElement("div")
         );
+
       }
 
+
+      // カメラ開始
       await startCamera();
+
+
+      if (!cameraActive) {
+        return;
+      }
+
+
+      // ボタン表示
+      document.getElementById(
+        "start-button"
+      ).style.display = "none";
+
 
       document.getElementById(
         "switch-button"
       ).style.display = "block";
 
-      document.getElementById(
-        "start-button"
-      ).textContent = "カメラ起動中";
 
-      cameraStarted = true;
+      document.getElementById(
+        "stop-button"
+      ).style.display = "block";
+
+
+      cameraActive = true;
+
+
+      // AI認識開始
+      window.requestAnimationFrame(loop);
+
     }
+
+
+    // =========================
+    // カメラ開始
+    // =========================
 
     async function startCamera() {
 
+      // すでにカメラが動いていたら停止
       if (stream) {
-        stream.getTracks().forEach(
-          track => track.stop()
-        );
+
+        stream
+          .getTracks()
+          .forEach(
+            track => track.stop()
+          );
+
         stream = null;
+
       }
 
+
       const constraints = {
+
         video: {
-          facingMode: facingMode,
+
+          facingMode:
+            facingMode,
+
           width: {
             ideal: 640
           },
+
           height: {
             ideal: 480
           }
+
         },
+
         audio: false
+
       };
+
 
       try {
 
         stream =
-          await navigator.mediaDevices.getUserMedia(
-            constraints
-          );
+          await navigator
+            .mediaDevices
+            .getUserMedia(
+              constraints
+            );
 
-        video.srcObject = stream;
+
+        video.srcObject =
+          stream;
+
 
         await video.play();
+
+
+        cameraActive = true;
+
 
       } catch (error) {
 
         console.error(error);
 
+
+        cameraActive = false;
+
+
         alert(
           "カメラを起動できませんでした。カメラの使用を許可してください。"
         );
 
-        return;
       }
 
-      if (!cameraStarted) {
-        window.requestAnimationFrame(loop);
-      }
     }
+
+
+    // =========================
+    // カメラ切り替え
+    // =========================
 
     async function switchCamera() {
 
-      if (!stream) {
+      if (!cameraActive) {
         return;
       }
 
-      if (facingMode === "environment") {
+
+      if (
+        facingMode ===
+        "environment"
+      ) {
+
         facingMode = "user";
+
       } else {
-        facingMode = "environment";
+
+        facingMode =
+          "environment";
+
       }
 
+
       await startCamera();
+
     }
+
+
+    // =========================
+    // カメラOFF
+    // =========================
+
+    function stopCamera() {
+
+      // カメラ停止
+      if (stream) {
+
+        stream
+          .getTracks()
+          .forEach(
+            track => track.stop()
+          );
+
+        stream = null;
+
+      }
+
+
+      cameraActive = false;
+
+
+      // カメラ映像を削除
+      const container =
+        document.getElementById(
+          "webcam-container"
+        );
+
+
+      container.innerHTML = `
+
+        <div class="camera-message">
+          カメラはオフです
+        </div>
+
+      `;
+
+
+      // ボタンを戻す
+      document.getElementById(
+        "start-button"
+      ).style.display = "block";
+
+
+      document.getElementById(
+        "start-button"
+      ).textContent =
+        "カメラを起動";
+
+
+      document.getElementById(
+        "switch-button"
+      ).style.display = "none";
+
+
+      document.getElementById(
+        "stop-button"
+      ).style.display = "none";
+
+
+      // 認識結果を消す
+      if (labelContainer) {
+
+        labelContainer.innerHTML = "";
+
+      }
+
+    }
+
+
+    // =========================
+    // AI認識ループ
+    // =========================
 
     async function loop() {
 
       if (
+        cameraActive &&
         video &&
         video.readyState >= 2 &&
         model
       ) {
+
         await predict();
+
       }
 
-      window.requestAnimationFrame(loop);
+
+      // カメラがONのときだけ続ける
+      if (cameraActive) {
+
+        window.requestAnimationFrame(
+          loop
+        );
+
+      }
+
     }
 
+
+    // =========================
+    // AI予測
+    // =========================
+
     async function predict() {
+
+      if (
+        !cameraActive ||
+        !video ||
+        !model
+      ) {
+
+        return;
+
+      }
+
 
       try {
 
         const prediction =
-          await model.predict(video);
+          await model.predict(
+            video
+          );
+
 
         for (
           let i = 0;
@@ -337,28 +580,45 @@
         ) {
 
           const className =
-            prediction[i].className;
+            prediction[i]
+              .className;
+
 
           const probability =
             (
-              prediction[i].probability * 100
+              prediction[i]
+                .probability *
+              100
             ).toFixed(1);
 
-          labelContainer
-            .childNodes[i]
-            .innerHTML =
-              className +
-              "　" +
-              probability +
-              "%";
+
+          if (
+            labelContainer &&
+            labelContainer.childNodes[i]
+          ) {
+
+            labelContainer
+              .childNodes[i]
+              .innerHTML =
+                className +
+                "　" +
+                probability +
+                "%";
+
+          }
+
         }
 
       } catch (error) {
+
         console.error(error);
+
       }
+
     }
 
   </script>
 
 </body>
 </html>
+```
