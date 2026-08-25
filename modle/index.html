@@ -7,6 +7,7 @@
 
   <title>画像認識AI</title>
 
+  <!-- AIモデル -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 
@@ -18,8 +19,19 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #eef2ff, #f8fafc);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background:
+        linear-gradient(
+          135deg,
+          #eef2ff,
+          #f8fafc
+        );
+
       color: #1e293b;
     }
 
@@ -27,12 +39,16 @@
       width: 100%;
       max-width: 480px;
       margin: 0 auto;
-      padding: 30px 18px 35px;
+      padding: 28px 16px 35px;
     }
+
+    /* =========================
+       ヘッダー
+    ========================= */
 
     .header {
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 22px;
     }
 
     h1 {
@@ -43,38 +59,58 @@
     }
 
     .subtitle {
-      margin-top: 8px;
+      margin-top: 7px;
       color: #64748b;
       font-size: 14px;
     }
 
-    .camera-card,
-    .result-card {
+    /* =========================
+       カード
+    ========================= */
+
+    .card {
       background: white;
-      border-radius: 25px;
+      border-radius: 24px;
       padding: 15px;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.10);
-      margin-bottom: 20px;
+
+      box-shadow:
+        0 12px 35px
+        rgba(0, 0, 0, 0.10);
+
+      margin-bottom: 18px;
     }
+
+    /* =========================
+       カメラ
+    ========================= */
 
     #webcam-container {
       width: 100%;
       aspect-ratio: 1 / 1;
+
       background: #0f172a;
+
       border-radius: 18px;
+
       overflow: hidden;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       position: relative;
     }
 
     #webcam {
       width: 100%;
       height: 100%;
+
       object-fit: cover;
+
       transform-origin: center center;
-      transition: transform 0.2s ease;
+
+      transition:
+        transform 0.2s ease;
     }
 
     .camera-message {
@@ -84,23 +120,37 @@
       padding: 20px;
     }
 
+    /* =========================
+       ボタン
+    ========================= */
+
     .buttons {
-      display: flex;
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
       gap: 8px;
-      margin-top: 15px;
-      flex-wrap: wrap;
+
+      margin-top: 14px;
     }
 
     button {
-      flex: 1;
-      min-width: 100px;
       border: none;
-      padding: 14px 10px;
-      border-radius: 15px;
-      font-size: 15px;
+
+      padding: 14px 8px;
+
+      border-radius: 14px;
+
+      font-size: 14px;
+
       font-weight: 700;
+
       cursor: pointer;
-      transition: transform 0.15s, opacity 0.15s;
+
+      transition:
+        transform 0.12s,
+        opacity 0.12s;
     }
 
     button:active {
@@ -108,6 +158,8 @@
     }
 
     #start-button {
+      grid-column: 1 / -1;
+
       background: #2563eb;
       color: white;
     }
@@ -115,74 +167,231 @@
     #switch-button {
       background: #e2e8f0;
       color: #334155;
+
       display: none;
     }
 
     #stop-button {
       background: #ef4444;
       color: white;
+
       display: none;
     }
 
+    /* =========================
+       ズーム
+    ========================= */
+
     #zoom-controls {
       display: none;
-      margin-top: 18px;
+
+      margin-top: 17px;
     }
 
     .zoom-title {
       text-align: center;
-      font-size: 13px;
+
       color: #64748b;
+
+      font-size: 13px;
+
       margin-bottom: 9px;
     }
 
     .zoom-buttons {
       display: flex;
+
       align-items: center;
+
       justify-content: center;
-      gap: 15px;
+
+      gap: 16px;
     }
 
     .zoom-button {
       flex: none;
-      min-width: 55px;
+
       width: 55px;
       height: 48px;
+
       padding: 0;
+
       border-radius: 14px;
+
       background: #e2e8f0;
+
       color: #334155;
-      font-size: 25px;
+
+      font-size: 24px;
     }
 
     #zoom-value {
-      min-width: 70px;
+      min-width: 65px;
+
       text-align: center;
+
       font-size: 18px;
+
       font-weight: 800;
     }
+
+    /* =========================
+       認識結果
+    ========================= */
 
     .result-title {
       font-size: 18px;
+
       font-weight: 800;
+
+      margin-bottom: 14px;
+    }
+
+    /* 一番高い結果 */
+
+    #highest-result {
+      display: none;
+
+      background:
+        linear-gradient(
+          135deg,
+          #eff6ff,
+          #f8fafc
+        );
+
+      border-radius: 18px;
+
+      padding: 17px;
+
+      margin-bottom: 18px;
+
+      text-align: center;
+    }
+
+    .highest-label {
+      color: #64748b;
+
+      font-size: 12px;
+
+      margin-bottom: 5px;
+    }
+
+    #highest-name {
+      font-size: 24px;
+
+      font-weight: 800;
+
+      margin-bottom: 4px;
+    }
+
+    #highest-percent {
+      font-size: 19px;
+
+      font-weight: 800;
+
+      color: #2563eb;
+    }
+
+    /* 各認識結果 */
+
+    .result-item {
       margin-bottom: 15px;
     }
 
-    #label-container div {
-      background: #f1f5f9;
-      border-radius: 12px;
-      padding: 12px 15px;
-      margin-bottom: 8px;
-      font-size: 16px;
-      font-weight: 700;
+    .result-header {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 10px;
+
+      margin-bottom: 7px;
     }
+
+    .result-name {
+      font-size: 15px;
+
+      font-weight: 700;
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+
+      white-space: nowrap;
+    }
+
+    .result-percent {
+      flex-shrink: 0;
+
+      font-size: 15px;
+
+      font-weight: 800;
+    }
+
+    /* バー */
+
+    .bar-background {
+      width: 100%;
+
+      height: 13px;
+
+      background: #e2e8f0;
+
+      border-radius: 999px;
+
+      overflow: hidden;
+    }
+
+    .bar {
+      width: 0%;
+
+      height: 100%;
+
+      background: #2563eb;
+
+      border-radius: 999px;
+
+      transition:
+        width 0.2s ease;
+    }
+
+    /* =========================
+       フッター
+    ========================= */
 
     .footer {
       text-align: center;
+
       margin-top: 20px;
+
       color: #94a3b8;
+
       font-size: 12px;
     }
+
+    /* =========================
+       スマホ
+    ========================= */
+
+    @media (max-width: 360px) {
+
+      .app {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      button {
+        font-size: 13px;
+      }
+
+    }
+
   </style>
 </head>
 
@@ -190,9 +399,15 @@
 
   <div class="app">
 
+    <!-- =====================
+         ヘッダー
+    ====================== -->
+
     <div class="header">
 
-      <h1>画像認識AI</h1>
+      <h1>
+        画像認識AI
+      </h1>
 
       <div class="subtitle">
         カメラで画像を認識します
@@ -201,7 +416,11 @@
     </div>
 
 
-    <div class="camera-card">
+    <!-- =====================
+         カメラカード
+    ====================== -->
+
+    <div class="card">
 
       <div id="webcam-container">
 
@@ -212,13 +431,17 @@
       </div>
 
 
+      <!-- ボタン -->
+
       <div class="buttons">
 
         <button
           id="start-button"
           type="button"
           onclick="init()">
+
           カメラを起動
+
         </button>
 
 
@@ -226,7 +449,9 @@
           id="switch-button"
           type="button"
           onclick="switchCamera()">
-          カメラ切り替え
+
+          🔄 カメラ切り替え
+
         </button>
 
 
@@ -234,13 +459,15 @@
           id="stop-button"
           type="button"
           onclick="stopCamera()">
-          カメラをオフ
+
+          ⛔ カメラOFF
+
         </button>
 
       </div>
 
 
-      <!-- デジタルズーム -->
+      <!-- ズーム -->
 
       <div id="zoom-controls">
 
@@ -254,18 +481,24 @@
             class="zoom-button"
             type="button"
             onclick="changeZoom(-0.5)">
+
             −
+
           </button>
+
 
           <div id="zoom-value">
             1.0×
           </div>
 
+
           <button
             class="zoom-button"
             type="button"
             onclick="changeZoom(0.5)">
+
             ＋
+
           </button>
 
         </div>
@@ -275,13 +508,38 @@
     </div>
 
 
-    <div class="result-card">
+    <!-- =====================
+         認識結果カード
+    ====================== -->
+
+    <div class="card">
 
       <div class="result-title">
         認識結果
       </div>
 
-      <div id="label-container"></div>
+
+      <!-- 一番高い結果 -->
+
+      <div id="highest-result">
+
+        <div class="highest-label">
+          最も高い認識結果
+        </div>
+
+        <div id="highest-name">
+        </div>
+
+        <div id="highest-percent">
+        </div>
+
+      </div>
+
+
+      <!-- 全結果 -->
+
+      <div id="label-container">
+      </div>
 
     </div>
 
@@ -295,38 +553,62 @@
 
   <script>
 
+    /* =========================
+       基本設定
+    ========================= */
+
     const URL = "./";
 
     let model = null;
+
     let video = null;
+
     let stream = null;
 
     let labelContainer = null;
+
     let maxPredictions = 0;
 
-    // 最初は背面カメラ
-    let facingMode = "environment";
-
-    // カメラ状態
     let cameraActive = false;
 
-    // デジタルズーム
+
+    /*
+
+      environment
+      = 背面カメラ
+
+      user
+      = 前面カメラ
+
+    */
+
+    let facingMode =
+      "environment";
+
+
+    /* =========================
+       デジタルズーム
+    ========================= */
+
     let currentZoom = 1.0;
 
     const MIN_ZOOM = 1.0;
+
     const MAX_ZOOM = 3.0;
+
     const ZOOM_STEP = 0.5;
 
 
-    // =====================================
-    // AIモデル読み込み + カメラ起動
-    // =====================================
+    /* =========================
+       AI起動
+    ========================= */
 
     async function init() {
 
       try {
 
-        // AIモデルを最初の1回だけ読み込む
+        /* AIモデルを読み込む */
+
         if (!model) {
 
           const modelURL =
@@ -335,11 +617,13 @@
           const metadataURL =
             URL + "metadata.json";
 
+
           model =
             await tmImage.load(
               modelURL,
               metadataURL
             );
+
 
           maxPredictions =
             model.getTotalClasses();
@@ -347,15 +631,27 @@
         }
 
 
-        // ビデオ作成
+        /* =====================
+           video作成
+        ====================== */
+
         video =
-          document.createElement("video");
+          document.createElement(
+            "video"
+          );
 
-        video.id = "webcam";
 
-        video.autoplay = true;
-        video.playsInline = true;
-        video.muted = true;
+        video.id =
+          "webcam";
+
+        video.autoplay =
+          true;
+
+        video.playsInline =
+          true;
+
+        video.muted =
+          true;
 
 
         const container =
@@ -364,18 +660,27 @@
           );
 
 
-        container.innerHTML = "";
+        container.innerHTML =
+          "";
 
-        container.appendChild(video);
+
+        container.appendChild(
+          video
+        );
 
 
-        // 認識結果欄
+        /* =====================
+           認識結果欄作成
+        ====================== */
+
         labelContainer =
           document.getElementById(
             "label-container"
           );
 
-        labelContainer.innerHTML = "";
+
+        labelContainer.innerHTML =
+          "";
 
 
         for (
@@ -384,20 +689,53 @@
           i++
         ) {
 
+          const item =
+            document.createElement(
+              "div"
+            );
+
+
+          item.className =
+            "result-item";
+
+
+          item.innerHTML = `
+
+            <div class="result-header">
+
+              <span
+                class="result-name">
+              </span>
+
+              <span
+                class="result-percent">
+              </span>
+
+            </div>
+
+            <div
+              class="bar-background">
+
+              <div
+                class="bar">
+              </div>
+
+            </div>
+
+          `;
+
+
           labelContainer.appendChild(
-            document.createElement("div")
+            item
           );
 
         }
 
 
-        // ズームを1倍に戻す
-        currentZoom = 1.0;
+        /* =====================
+           カメラ開始
+        ====================== */
 
-        updateZoomDisplay();
-
-
-        // カメラ開始
         await startCamera();
 
 
@@ -406,39 +744,52 @@
         }
 
 
-        // ボタン表示
+        /* ボタン表示 */
+
         document.getElementById(
           "start-button"
-        ).style.display = "none";
+        ).style.display =
+          "none";
 
 
         document.getElementById(
           "switch-button"
-        ).style.display = "block";
+        ).style.display =
+          "block";
 
 
         document.getElementById(
           "stop-button"
-        ).style.display = "block";
+        ).style.display =
+          "block";
 
 
-        // ズームボタン表示
         document.getElementById(
           "zoom-controls"
-        ).style.display = "block";
+        ).style.display =
+          "block";
 
 
-        // AI認識開始
-        window.requestAnimationFrame(
+        /* ズーム初期化 */
+
+        currentZoom = 1.0;
+
+        updateZoom();
+
+
+        /* AI認識開始 */
+
+        requestAnimationFrame(
           loop
         );
+
 
       } catch (error) {
 
         console.error(error);
 
         alert(
-          "カメラまたはAIの起動に失敗しました。"
+          "AIまたはカメラの起動に失敗しました。"
         );
 
       }
@@ -446,25 +797,39 @@
     }
 
 
-    // =====================================
-    // カメラ開始
-    // =====================================
+    /* =========================
+       カメラ開始
+    ========================= */
 
     async function startCamera() {
 
-      // 既存のカメラを停止
+      /*
+
+        以前のカメラを停止
+
+        これによって
+        カメラ切り替え時に
+        古いカメラが残らない
+
+      */
+
       if (stream) {
 
         stream
           .getTracks()
           .forEach(
-            track => track.stop()
+            track =>
+              track.stop()
           );
 
         stream = null;
 
       }
 
+
+      /* =====================
+         カメラ設定
+      ====================== */
 
       const constraints = {
 
@@ -490,6 +855,13 @@
 
       try {
 
+        /*
+
+          カメラ映像は
+          このブラウザ内だけで使用
+
+        */
+
         stream =
           await navigator
             .mediaDevices
@@ -505,24 +877,28 @@
         await video.play();
 
 
-        cameraActive = true;
+        cameraActive =
+          true;
 
 
-        // カメラ切り替え時にズームをリセット
-        currentZoom = 1.0;
+        currentZoom =
+          1.0;
 
-        updateZoomDisplay();
+
+        updateZoom();
 
 
       } catch (error) {
 
         console.error(error);
 
-        cameraActive = false;
+
+        cameraActive =
+          false;
 
 
         alert(
-          "カメラを起動できませんでした。カメラの使用を許可してください。"
+          "カメラを起動できませんでした。\n\nブラウザのカメラ使用許可を確認してください。"
         );
 
       }
@@ -530,9 +906,9 @@
     }
 
 
-    // =====================================
-    // カメラ切り替え
-    // =====================================
+    /* =========================
+       前後カメラ切り替え
+    ========================= */
 
     async function switchCamera() {
 
@@ -546,7 +922,8 @@
         "environment"
       ) {
 
-        facingMode = "user";
+        facingMode =
+          "user";
 
       } else {
 
@@ -561,19 +938,21 @@
     }
 
 
-    // =====================================
-    // カメラOFF
-    // =====================================
+    /* =========================
+       カメラOFF
+    ========================= */
 
     function stopCamera() {
 
-      // カメラ停止
+      /* カメラ停止 */
+
       if (stream) {
 
         stream
           .getTracks()
           .forEach(
-            track => track.stop()
+            track =>
+              track.stop()
           );
 
         stream = null;
@@ -581,14 +960,17 @@
       }
 
 
-      cameraActive = false;
+      cameraActive =
+        false;
 
 
-      // ズームを初期化
-      currentZoom = 1.0;
+      /* video削除 */
+
+      video = null;
 
 
-      // カメラ画面を変更
+      /* 表示を戻す */
+
       const container =
         document.getElementById(
           "webcam-container"
@@ -597,60 +979,84 @@
 
       container.innerHTML = `
 
-        <div class="camera-message">
+        <div
+          class="camera-message">
+
           カメラはオフです
+
         </div>
 
       `;
 
 
-      // ボタン表示
+      /* ボタン */
+
       document.getElementById(
         "start-button"
-      ).style.display = "block";
+      ).style.display =
+        "block";
 
 
       document.getElementById(
         "switch-button"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
       document.getElementById(
         "stop-button"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
-      // ズームを非表示
       document.getElementById(
         "zoom-controls"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
-      // 認識結果を削除
+      /* 一番高い結果を消す */
+
+      document.getElementById(
+        "highest-result"
+      ).style.display =
+        "none";
+
+
+      /* 認識結果を消す */
+
       if (labelContainer) {
 
-        labelContainer.innerHTML = "";
+        labelContainer.innerHTML =
+          "";
 
       }
 
     }
 
 
-    // =====================================
-    // デジタルズーム変更
-    // =====================================
+    /* =========================
+       デジタルズーム変更
+    ========================= */
 
     function changeZoom(amount) {
 
-      if (!cameraActive || !video) {
+      if (
+        !cameraActive ||
+        !video
+      ) {
+
         return;
+
       }
 
 
-      currentZoom += amount;
+      currentZoom +=
+        amount;
 
 
-      // 1.0～3.0倍の範囲にする
+      /* 範囲制限 */
+
       currentZoom =
         Math.max(
           MIN_ZOOM,
@@ -661,16 +1067,16 @@
         );
 
 
-      updateZoomDisplay();
+      updateZoom();
 
     }
 
 
-    // =====================================
-    // ズーム表示更新
-    // =====================================
+    /* =========================
+       ズーム表示更新
+    ========================= */
 
-    function updateZoomDisplay() {
+    function updateZoom() {
 
       const zoomValue =
         document.getElementById(
@@ -687,7 +1093,6 @@
       }
 
 
-      // 実際の映像を拡大
       if (video) {
 
         video.style.transform =
@@ -700,9 +1105,9 @@
     }
 
 
-    // =====================================
-    // AI認識ループ
-    // =====================================
+    /* =========================
+       AI認識ループ
+    ========================= */
 
     async function loop() {
 
@@ -718,10 +1123,9 @@
       }
 
 
-      // カメラONの間だけループ
       if (cameraActive) {
 
-        window.requestAnimationFrame(
+        requestAnimationFrame(
           loop
         );
 
@@ -730,9 +1134,9 @@
     }
 
 
-    // =====================================
-    // AI予測
-    // =====================================
+    /* =========================
+       AI認識
+    ========================= */
 
     async function predict() {
 
@@ -755,39 +1159,133 @@
           );
 
 
+        /* =====================
+           一番高い認識結果
+        ====================== */
+
+        let highestIndex =
+          0;
+
+
+        let highestProbability =
+          prediction[0]
+            .probability;
+
+
+        for (
+          let i = 1;
+          i < maxPredictions;
+          i++
+        ) {
+
+          if (
+            prediction[i]
+              .probability >
+            highestProbability
+          ) {
+
+            highestProbability =
+              prediction[i]
+                .probability;
+
+            highestIndex =
+              i;
+
+          }
+
+        }
+
+
+        const highest =
+          prediction[
+            highestIndex
+          ];
+
+
+        document.getElementById(
+          "highest-result"
+        ).style.display =
+          "block";
+
+
+        document.getElementById(
+          "highest-name"
+        ).textContent =
+          highest.className;
+
+
+        document.getElementById(
+          "highest-percent"
+        ).textContent =
+          (
+            highest.probability *
+            100
+          ).toFixed(1) +
+          "%";
+
+
+        /* =====================
+           各認識結果
+        ====================== */
+
         for (
           let i = 0;
           i < maxPredictions;
           i++
         ) {
 
-          const className =
+          const item =
+            labelContainer
+              .children[i];
+
+
+          if (!item) {
+            continue;
+          }
+
+
+          const name =
+            item.querySelector(
+              ".result-name"
+            );
+
+
+          const percent =
+            item.querySelector(
+              ".result-percent"
+            );
+
+
+          const bar =
+            item.querySelector(
+              ".bar"
+            );
+
+
+          const value =
+            prediction[i]
+              .probability *
+            100;
+
+
+          /* 名前 */
+
+          name.textContent =
             prediction[i]
               .className;
 
 
-          const probability =
-            (
-              prediction[i]
-                .probability *
-              100
-            ).toFixed(1);
+          /* 数字 */
+
+          percent.textContent =
+            value.toFixed(1) +
+            "%";
 
 
-          if (
-            labelContainer &&
-            labelContainer.childNodes[i]
-          ) {
+          /* バー */
 
-            labelContainer
-              .childNodes[i]
-              .innerHTML =
-                className +
-                "　" +
-                probability +
-                "%";
-
-          }
+          bar.style.width =
+            value + "%";
 
         }
 
