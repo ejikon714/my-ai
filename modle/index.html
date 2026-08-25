@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -22,8 +23,9 @@
 
 <title>画像認識AI</title>
 
-<script src="./tf.min.js"></script>
-<script src="./teachablemachine-image.min.js"></script>
+<!-- AIライブラリはmodleフォルダから読み込む -->
+<script src="./modle/tf.min.js"></script>
+<script src="./modle/teachablemachine-image.min.js"></script>
 
 <style>
 * {
@@ -97,6 +99,7 @@ h1 {
   color: #94a3b8;
   font-size: 14px;
   text-align: center;
+  padding: 20px;
 }
 
 .buttons {
@@ -113,6 +116,11 @@ button {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
 }
 
 #start-button {
@@ -292,6 +300,7 @@ button {
   margin-top: 12px;
   font-size: 12px;
   color: #64748b;
+  min-height: 18px;
 }
 
 .footer {
@@ -350,13 +359,21 @@ button {
 
 <div class="zoom-buttons">
 
-<button class="zoom-button" id="zoom-minus">
+<button
+  class="zoom-button"
+  id="zoom-minus"
+  type="button"
+>
 −
 </button>
 
 <div id="zoom-value">1.0×</div>
 
-<button class="zoom-button" id="zoom-plus">
+<button
+  class="zoom-button"
+  id="zoom-plus"
+  type="button"
+>
 ＋
 </button>
 
@@ -370,11 +387,11 @@ button {
 
 <div class="photo-buttons">
 
-<button id="download-button">
+<button id="download-button" type="button">
 💾 写真を保存
 </button>
 
-<button id="delete-photo-button">
+<button id="delete-photo-button" type="button">
 🗑️ 写真を削除
 </button>
 
@@ -394,7 +411,7 @@ type="file"
 accept="image/*"
 >
 
-<button id="load-image-button">
+<button id="load-image-button" type="button">
 🖼️ 画像を読み込んで認識
 </button>
 
@@ -438,22 +455,14 @@ Image Recognition AI
 
 /*
  * ==========================================
- * プライバシー・安全設計
+ * AIモデル
  * ==========================================
  *
- * 画像を外部へ送信する処理を実装しない。
- *
- * fetch()
- * XMLHttpRequest
- * navigator.sendBeacon()
- *
- * などによる画像アップロードは行わない。
- *
- * AI判定は model.predict() により端末内で実行。
+ * ルートのindex.htmlから見たモデルの場所
  */
 
-const MODEL_URL = "../model.json";
-const METADATA_URL = "../metadata.json";
+const MODEL_URL = "./model.json";
+const METADATA_URL = "./metadata.json";
 
 let model = null;
 let video = null;
@@ -513,6 +522,15 @@ async function loadModel() {
 
   if (model) {
     return;
+  }
+
+  if (
+    typeof tmImage === "undefined"
+  ) {
+
+    throw new Error(
+      "Teachable Machineライブラリが読み込まれていません"
+    );
   }
 
   setStatus(
@@ -582,13 +600,35 @@ function createResultArea() {
  * ==========================================
  * カメラ起動
  * ==========================================
+ *
+ * カメラを先に起動する。
+ * AI読み込みで問題が起きても、
+ * カメラ自体は起動できるようにする。
  */
 
 async function init() {
 
+  if (cameraActive) {
+    return;
+  }
+
   try {
 
-    await loadModel();
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      setStatus(
+        "このブラウザではカメラを使用できません"
+      );
+
+      return;
+    }
+
+    /*
+     * ビデオ要素を作成
+     */
 
     video =
       document.createElement("video");
@@ -606,11 +646,23 @@ async function init() {
     container.innerHTML = "";
     container.appendChild(video);
 
+    /*
+     * AIより先にカメラを起動
+     */
+
+    setStatus(
+      "カメラを起動しています..."
+    );
+
     await startCamera();
 
     if (!cameraActive) {
       return;
     }
+
+    /*
+     * カメラ起動後にボタンを表示
+     */
 
     document.getElementById(
       "start-button"
@@ -632,15 +684,64 @@ async function init() {
       "zoom-controls"
     ).style.display = "block";
 
-    requestAnimationFrame(loop);
+    /*
+     * AIモデルを読み込む
+     */
+
+    try {
+
+      await loadModel();
+
+      if (cameraActive) {
+
+        setStatus(
+          "カメラ・AI認識準備完了"
+        );
+
+        requestAnimationFrame(loop);
+      }
+
+    } catch (aiError) {
+
+      console.error(
+        "AIモデル読み込みエラー:",
+        aiError
+      );
+
+      setStatus(
+        "カメラは起動しました。AIモデルの読み込みに失敗しました。"
+      );
+    }
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "カメラ起動エラー:",
+      error
+    );
+
+    cameraActive = false;
 
     setStatus(
-      "AIまたはカメラの起動に失敗しました"
+      "カメラを起動できませんでした"
     );
+
+    if (video) {
+
+      video.srcObject = null;
+      video.remove();
+
+      video = null;
+    }
+
+    document.getElementById(
+      "webcam-container"
+    ).innerHTML = `
+      <div class="camera-message">
+        カメラを起動できませんでした<br>
+        ブラウザのカメラ許可を確認してください
+      </div>
+    `;
   }
 }
 
@@ -669,7 +770,9 @@ async function startCamera() {
         .getUserMedia({
 
           video: {
-            facingMode: facingMode,
+            facingMode: {
+              ideal: facingMode
+            },
             width: {
               ideal: 1280
             },
@@ -682,6 +785,13 @@ async function startCamera() {
 
         });
 
+    if (!video) {
+
+      throw new Error(
+        "video要素がありません"
+      );
+    }
+
     video.srcObject = stream;
 
     await video.play();
@@ -693,18 +803,28 @@ async function startCamera() {
     updateZoom();
 
     setStatus(
-      "カメラ認識中"
+      "カメラ起動完了"
     );
 
   } catch (error) {
 
     cameraActive = false;
 
-    console.error(error);
+    if (stream) {
 
-    alert(
-      "カメラを起動できませんでした。"
+      stream
+        .getTracks()
+        .forEach(track => track.stop());
+
+      stream = null;
+    }
+
+    console.error(
+      "getUserMedia error:",
+      error
     );
+
+    throw error;
   }
 }
 
@@ -726,7 +846,28 @@ async function switchCamera() {
       ? "user"
       : "environment";
 
-  await startCamera();
+  try {
+
+    await startCamera();
+
+    if (cameraActive && model) {
+
+      setStatus(
+        "カメラ認識中"
+      );
+    }
+
+  } catch (error) {
+
+    console.error(
+      "カメラ切替エラー:",
+      error
+    );
+
+    setStatus(
+      "カメラを切り替えられませんでした"
+    );
+  }
 }
 
 
@@ -759,18 +900,25 @@ async function loop(timestamp) {
         const prediction =
           await model.predict(video);
 
-        showPrediction(
-          prediction
-        );
+        if (cameraActive) {
+
+          showPrediction(
+            prediction
+          );
+        }
 
       } catch (error) {
 
-        console.error(error);
+        console.error(
+          "AI認識エラー:",
+          error
+        );
       }
     }
   }
 
   if (cameraActive) {
+
     requestAnimationFrame(loop);
   }
 }
@@ -784,7 +932,11 @@ async function loop(timestamp) {
 
 function showPrediction(prediction) {
 
-  if (!labelContainer) {
+  if (
+    !labelContainer ||
+    !prediction ||
+    prediction.length === 0
+  ) {
     return;
   }
 
@@ -854,7 +1006,10 @@ function showPrediction(prediction) {
     item.querySelector(
       ".bar"
     ).style.width =
-      value + "%";
+      Math.max(
+        0,
+        Math.min(100, value)
+      ) + "%";
   }
 }
 
@@ -888,10 +1043,16 @@ function changeZoom(amount) {
 
 function updateZoom() {
 
-  document.getElementById(
-    "zoom-value"
-  ).textContent =
-    currentZoom.toFixed(1) + "×";
+  const zoomValue =
+    document.getElementById(
+      "zoom-value"
+    );
+
+  if (zoomValue) {
+
+    zoomValue.textContent =
+      currentZoom.toFixed(1) + "×";
+  }
 
   if (video) {
 
@@ -911,7 +1072,11 @@ function updateZoom() {
 
 function capturePhoto() {
 
-  if (!cameraActive || !video) {
+  if (
+    !cameraActive ||
+    !video ||
+    video.readyState < 2
+  ) {
     return;
   }
 
@@ -924,11 +1089,24 @@ function capturePhoto() {
   const height =
     video.videoHeight;
 
+  if (!width || !height) {
+
+    setStatus(
+      "写真を撮影できませんでした"
+    );
+
+    return;
+  }
+
   canvas.width = width;
   canvas.height = height;
 
   const ctx =
     canvas.getContext("2d");
+
+  if (!ctx) {
+    return;
+  }
 
   ctx.save();
 
@@ -990,9 +1168,8 @@ function loadImage(event) {
   }
 
   /*
-   * FileReaderは端末内でファイルを読むだけ。
-   *
-   * ここでサーバーへのアップロードは行わない。
+   * 画像はFileReaderで端末内に読み込む。
+   * サーバーへのアップロード処理は行わない。
    */
 
   const reader =
@@ -1020,7 +1197,23 @@ function loadImage(event) {
       capturedDataURL;
   };
 
+  reader.onerror = function(error) {
+
+    console.error(
+      "画像読み込みエラー:",
+      error
+    );
+
+    setStatus(
+      "画像を読み込めませんでした"
+    );
+  };
+
   reader.readAsDataURL(file);
+
+  /*
+   * 同じ画像をもう一度選択できるようにする
+   */
 
   event.target.value = "";
 }
@@ -1051,7 +1244,10 @@ async function predictImage(image) {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "画像AI判定エラー:",
+      error
+    );
 
     setStatus(
       "画像の判定に失敗しました"
@@ -1087,6 +1283,11 @@ function showCapturedImage(dataURL) {
 function downloadPhoto() {
 
   if (!capturedDataURL) {
+
+    setStatus(
+      "保存する写真がありません"
+    );
+
     return;
   }
 
@@ -1154,6 +1355,7 @@ function clearResults() {
     labelContainer.innerHTML = "";
 
     if (maxPredictions > 0) {
+
       createResultArea();
     }
   }
@@ -1167,6 +1369,10 @@ function clearResults() {
  */
 
 function stopCamera() {
+
+  /*
+   * カメラストリームを停止
+   */
 
   if (stream) {
 
@@ -1183,10 +1389,15 @@ function stopCamera() {
 
   cameraActive = false;
 
+  /*
+   * videoを停止
+   */
+
   if (video) {
 
     video.pause();
     video.srcObject = null;
+    video.remove();
 
   }
 
@@ -1198,6 +1409,10 @@ function stopCamera() {
 
   capturedDataURL = null;
 
+  /*
+   * カメラ画面を初期状態へ戻す
+   */
+
   document.getElementById(
     "webcam-container"
   ).innerHTML = `
@@ -1205,6 +1420,10 @@ function stopCamera() {
       カメラを起動してください
     </div>
   `;
+
+  /*
+   * ボタンを初期状態へ戻す
+   */
 
   document.getElementById(
     "start-button"
@@ -1226,6 +1445,10 @@ function stopCamera() {
     "zoom-controls"
   ).style.display = "none";
 
+  /*
+   * 写真を非表示
+   */
+
   document.getElementById(
     "photo-area"
   ).style.display = "none";
@@ -1234,12 +1457,22 @@ function stopCamera() {
     "captured-photo"
   ).removeAttribute("src");
 
+  /*
+   * 認識結果を完全に消す
+   */
+
   clearResults();
+
+  /*
+   * ズームを初期化
+   */
 
   currentZoom = 1.0;
 
+  updateZoom();
+
   setStatus(
-    "カメラOFF"
+    "カメラを起動してください"
   );
 }
 
@@ -1252,9 +1485,15 @@ function stopCamera() {
 
 function setStatus(text) {
 
-  document.getElementById(
-    "status"
-  ).textContent = text;
+  const status =
+    document.getElementById(
+      "status"
+    );
+
+  if (status) {
+
+    status.textContent = text;
+  }
 }
 
 
@@ -1338,3 +1577,4 @@ document.getElementById(
 
 </body>
 </html>
+```
