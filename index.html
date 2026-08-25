@@ -4,10 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<meta
+  http-equiv="Content-Security-Policy"
+  content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data:;
+    media-src 'self' blob:;
+    connect-src 'self';
+    worker-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'none';
+  "
+>
+
 <title>画像認識AI</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+<script src="./tf.min.js"></script>
+<script src="./teachablemachine-image.min.js"></script>
 
 <style>
 * {
@@ -73,7 +89,7 @@ h1 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform-origin: center center;
+  transform-origin: center;
   transition: transform .15s ease;
 }
 
@@ -108,7 +124,6 @@ button {
 #switch-button {
   display: none;
   background: #e2e8f0;
-  color: #334155;
 }
 
 #stop-button {
@@ -149,7 +164,6 @@ button {
   height: 48px;
   padding: 0;
   background: #e2e8f0;
-  color: #334155;
   font-size: 24px;
 }
 
@@ -197,12 +211,11 @@ button {
   margin-top: 10px;
   background: #0f766e;
   color: white;
-  font-size: 15px;
 }
 
 .privacy {
   margin-top: 12px;
-  padding: 10px;
+  padding: 11px;
   border-radius: 12px;
   background: #f0fdf4;
   color: #166534;
@@ -301,7 +314,6 @@ button {
 </div>
 </div>
 
-
 <div class="card">
 
 <div id="webcam-container">
@@ -310,39 +322,25 @@ button {
 </div>
 </div>
 
-
 <div class="buttons">
 
-<button
-id="start-button"
-type="button"
-onclick="init()">
+<button id="start-button" type="button">
 📷 カメラを起動
 </button>
 
-<button
-id="switch-button"
-type="button"
-onclick="switchCamera()">
+<button id="switch-button" type="button">
 🔄 カメラ切り替え
 </button>
 
-<button
-id="stop-button"
-type="button"
-onclick="stopCamera()">
+<button id="stop-button" type="button">
 ⛔ カメラOFF
 </button>
 
-<button
-id="capture-button"
-type="button"
-onclick="capturePhoto()">
+<button id="capture-button" type="button">
 📸 写真を撮影
 </button>
 
 </div>
-
 
 <div id="zoom-controls">
 
@@ -352,19 +350,13 @@ onclick="capturePhoto()">
 
 <div class="zoom-buttons">
 
-<button
-class="zoom-button"
-onclick="changeZoom(-0.5)">
+<button class="zoom-button" id="zoom-minus">
 −
 </button>
 
-<div id="zoom-value">
-1.0×
-</div>
+<div id="zoom-value">1.0×</div>
 
-<button
-class="zoom-button"
-onclick="changeZoom(0.5)">
+<button class="zoom-button" id="zoom-plus">
 ＋
 </button>
 
@@ -372,46 +364,37 @@ onclick="changeZoom(0.5)">
 
 </div>
 
-
 <div id="photo-area">
 
-<img
-id="captured-photo"
-alt="撮影・読み込み画像">
+<img id="captured-photo" alt="撮影・読み込み画像">
 
 <div class="photo-buttons">
 
-<button
-id="download-button"
-onclick="downloadPhoto()">
+<button id="download-button">
 💾 写真を保存
 </button>
 
-<button
-id="delete-photo-button"
-onclick="deletePhoto()">
+<button id="delete-photo-button">
 🗑️ 写真を削除
 </button>
 
 </div>
 
 <div class="privacy">
-🔒 画像はこの端末内でAI判定します。<br>
-このプログラムから画像を外部サーバーへ送信しません。
+🔒 プライバシー保護<br>
+カメラ映像・写真は外部サーバーへ送信せず、
+この端末内でAI判定します。
 </div>
 
 </div>
-
 
 <input
 id="image-input"
 type="file"
 accept="image/*"
-onchange="loadImage(event)">
+>
 
-<button
-id="load-image-button"
-onclick="openImagePicker()">
+<button id="load-image-button">
 🖼️ 画像を読み込んで認識
 </button>
 
@@ -420,7 +403,6 @@ AIモデル未起動
 </div>
 
 </div>
-
 
 <div class="card">
 
@@ -444,25 +426,39 @@ AIモデル未起動
 
 </div>
 
-
 <div class="footer">
 Image Recognition AI
 </div>
 
 </div>
 
-
 <script>
 
-/* =========================================
-   設定
-   ========================================= */
+"use strict";
 
-const URL = "./";
+/*
+ * ==========================================
+ * プライバシー・安全設計
+ * ==========================================
+ *
+ * 画像を外部へ送信する処理を実装しない。
+ *
+ * fetch()
+ * XMLHttpRequest
+ * navigator.sendBeacon()
+ *
+ * などによる画像アップロードは行わない。
+ *
+ * AI判定は model.predict() により端末内で実行。
+ */
+
+const MODEL_URL = "./model.json";
+const METADATA_URL = "./metadata.json";
 
 let model = null;
 let video = null;
 let stream = null;
+
 let labelContainer = null;
 let maxPredictions = 0;
 
@@ -474,15 +470,6 @@ let currentZoom = 1.0;
 const MIN_ZOOM = 1.0;
 const MAX_ZOOM = 3.0;
 
-/*
-  識別性能を落とさないため、
-  AIモデルそのものは変更しない。
-*/
-
-/*
-  AI判定の間隔だけ制御。
-  通信量ではなく端末負荷を減らす目的。
-*/
 const PREDICTION_INTERVAL = 120;
 
 let lastPredictionTime = 0;
@@ -490,9 +477,11 @@ let lastPredictionTime = 0;
 let capturedDataURL = null;
 
 
-/* =========================================
-   Service Worker登録
-   ========================================= */
+/*
+ * ==========================================
+ * Service Worker
+ * ==========================================
+ */
 
 if ("serviceWorker" in navigator) {
 
@@ -500,17 +489,10 @@ if ("serviceWorker" in navigator) {
 
     navigator.serviceWorker
       .register("./sw.js")
-      .then(() => {
-
-        console.log(
-          "通信節約用キャッシュを有効化しました"
-        );
-
-      })
       .catch(error => {
 
-        console.log(
-          "Service Worker登録失敗:",
+        console.error(
+          "Service Worker:",
           error
         );
 
@@ -521,9 +503,11 @@ if ("serviceWorker" in navigator) {
 }
 
 
-/* =========================================
-   AIモデル読み込み
-   ========================================= */
+/*
+ * ==========================================
+ * AIモデル
+ * ==========================================
+ */
 
 async function loadModel() {
 
@@ -536,8 +520,8 @@ async function loadModel() {
   );
 
   model = await tmImage.load(
-    URL + "model.json",
-    URL + "metadata.json"
+    MODEL_URL,
+    METADATA_URL
   );
 
   maxPredictions =
@@ -551,9 +535,11 @@ async function loadModel() {
 }
 
 
-/* =========================================
-   認識結果欄
-   ========================================= */
+/*
+ * ==========================================
+ * 結果欄
+ * ==========================================
+ */
 
 function createResultArea() {
 
@@ -592,9 +578,11 @@ function createResultArea() {
 }
 
 
-/* =========================================
-   カメラ起動
-   ========================================= */
+/*
+ * ==========================================
+ * カメラ起動
+ * ==========================================
+ */
 
 async function init() {
 
@@ -644,10 +632,6 @@ async function init() {
       "zoom-controls"
     ).style.display = "block";
 
-    currentZoom = 1.0;
-
-    updateZoom();
-
     requestAnimationFrame(loop);
 
   } catch (error) {
@@ -657,17 +641,15 @@ async function init() {
     setStatus(
       "AIまたはカメラの起動に失敗しました"
     );
-
-    alert(
-      "AIまたはカメラの起動に失敗しました。"
-    );
   }
 }
 
 
-/* =========================================
-   カメラ開始
-   ========================================= */
+/*
+ * ==========================================
+ * カメラ開始
+ * ==========================================
+ */
 
 async function startCamera() {
 
@@ -688,19 +670,17 @@ async function startCamera() {
 
           video: {
             facingMode: facingMode,
-
             width: {
               ideal: 1280
             },
-
             height: {
               ideal: 720
             }
           },
 
           audio: false
-        });
 
+        });
 
     video.srcObject = stream;
 
@@ -718,9 +698,9 @@ async function startCamera() {
 
   } catch (error) {
 
-    console.error(error);
-
     cameraActive = false;
+
+    console.error(error);
 
     alert(
       "カメラを起動できませんでした。"
@@ -729,9 +709,11 @@ async function startCamera() {
 }
 
 
-/* =========================================
-   カメラ切替
-   ========================================= */
+/*
+ * ==========================================
+ * カメラ切替
+ * ==========================================
+ */
 
 async function switchCamera() {
 
@@ -748,193 +730,11 @@ async function switchCamera() {
 }
 
 
-/* =========================================
-   写真撮影
-   ========================================= */
-
-function capturePhoto() {
-
-  if (
-    !cameraActive ||
-    !video
-  ) {
-    return;
-  }
-
-  const canvas =
-    document.createElement("canvas");
-
-  const width =
-    video.videoWidth || 640;
-
-  const height =
-    video.videoHeight || 480;
-
-  canvas.width = width;
-  canvas.height = height;
-
-  const ctx =
-    canvas.getContext("2d");
-
-  ctx.save();
-
-  ctx.translate(
-    width / 2,
-    height / 2
-  );
-
-  ctx.scale(
-    currentZoom,
-    currentZoom
-  );
-
-  ctx.drawImage(
-    video,
-    -width / 2,
-    -height / 2,
-    width,
-    height
-  );
-
-  ctx.restore();
-
-  /*
-    写真は端末内のCanvasだけで作成
-  */
-
-  capturedDataURL =
-    canvas.toDataURL(
-      "image/jpeg",
-      0.92
-    );
-
-  showCapturedImage(
-    capturedDataURL
-  );
-
-  predictImage(canvas);
-}
-
-
-/* =========================================
-   画像表示
-   ========================================= */
-
-function showCapturedImage(dataURL) {
-
-  const photo =
-    document.getElementById(
-      "captured-photo"
-    );
-
-  photo.src = dataURL;
-
-  document.getElementById(
-    "photo-area"
-  ).style.display = "block";
-}
-
-
-/* =========================================
-   画像選択
-   ========================================= */
-
-function openImagePicker() {
-
-  document.getElementById(
-    "image-input"
-  ).click();
-}
-
-
-/* =========================================
-   画像読み込み
-   ========================================= */
-
-function loadImage(event) {
-
-  const file =
-    event.target.files[0];
-
-  if (!file) {
-    return;
-  }
-
-  /*
-    FileReaderで端末内に読み込む。
-    サーバーへのアップロードはしない。
-  */
-
-  const reader =
-    new FileReader();
-
-  reader.onload = function(e) {
-
-    capturedDataURL =
-      e.target.result;
-
-    showCapturedImage(
-      capturedDataURL
-    );
-
-    const image =
-      new Image();
-
-    image.onload = async function() {
-
-      await predictImage(image);
-
-    };
-
-    image.src =
-      capturedDataURL;
-  };
-
-  reader.readAsDataURL(file);
-
-  /*
-    同じ画像を再度選択できるようにする
-  */
-
-  event.target.value = "";
-}
-
-
-/* =========================================
-   画像AI判定
-   ========================================= */
-
-async function predictImage(image) {
-
-  try {
-
-    await loadModel();
-
-    const prediction =
-      await model.predict(image);
-
-    showPrediction(
-      prediction
-    );
-
-    setStatus(
-      "画像のAI判定完了"
-    );
-
-  } catch (error) {
-
-    console.error(error);
-
-    setStatus(
-      "画像の判定に失敗しました"
-    );
-  }
-}
-
-
-/* =========================================
-   リアルタイム認識
-   ========================================= */
+/*
+ * ==========================================
+ * リアルタイム認識
+ * ==========================================
+ */
 
 async function loop(timestamp) {
 
@@ -944,11 +744,6 @@ async function loop(timestamp) {
     video.readyState >= 2 &&
     model
   ) {
-
-    /*
-      AIモデルはそのまま。
-      判定間隔だけ調整して端末負荷を抑える。
-    */
 
     if (
       timestamp -
@@ -976,15 +771,16 @@ async function loop(timestamp) {
   }
 
   if (cameraActive) {
-
     requestAnimationFrame(loop);
   }
 }
 
 
-/* =========================================
-   認識結果表示
-   ========================================= */
+/*
+ * ==========================================
+ * AI結果
+ * ==========================================
+ */
 
 function showPrediction(prediction) {
 
@@ -994,9 +790,6 @@ function showPrediction(prediction) {
 
   let highestIndex = 0;
 
-  let highestProbability =
-    prediction[0].probability;
-
   for (
     let i = 1;
     i < prediction.length;
@@ -1005,11 +798,8 @@ function showPrediction(prediction) {
 
     if (
       prediction[i].probability >
-      highestProbability
+      prediction[highestIndex].probability
     ) {
-
-      highestProbability =
-        prediction[i].probability;
 
       highestIndex = i;
     }
@@ -1069,16 +859,15 @@ function showPrediction(prediction) {
 }
 
 
-/* =========================================
-   ズーム
-   ========================================= */
+/*
+ * ==========================================
+ * デジタルズーム
+ * ==========================================
+ */
 
 function changeZoom(amount) {
 
-  if (
-    !cameraActive ||
-    !video
-  ) {
+  if (!cameraActive || !video) {
     return;
   }
 
@@ -1099,17 +888,10 @@ function changeZoom(amount) {
 
 function updateZoom() {
 
-  const zoomValue =
-    document.getElementById(
-      "zoom-value"
-    );
-
-  if (zoomValue) {
-
-    zoomValue.textContent =
-      currentZoom.toFixed(1) +
-      "×";
-  }
+  document.getElementById(
+    "zoom-value"
+  ).textContent =
+    currentZoom.toFixed(1) + "×";
 
   if (video) {
 
@@ -1121,18 +903,190 @@ function updateZoom() {
 }
 
 
-/* =========================================
-   写真保存
-   ========================================= */
+/*
+ * ==========================================
+ * 写真撮影
+ * ==========================================
+ */
+
+function capturePhoto() {
+
+  if (!cameraActive || !video) {
+    return;
+  }
+
+  const canvas =
+    document.createElement("canvas");
+
+  const width =
+    video.videoWidth;
+
+  const height =
+    video.videoHeight;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx =
+    canvas.getContext("2d");
+
+  ctx.save();
+
+  ctx.translate(
+    width / 2,
+    height / 2
+  );
+
+  ctx.scale(
+    currentZoom,
+    currentZoom
+  );
+
+  ctx.drawImage(
+    video,
+    -width / 2,
+    -height / 2,
+    width,
+    height
+  );
+
+  ctx.restore();
+
+  capturedDataURL =
+    canvas.toDataURL(
+      "image/jpeg",
+      0.92
+    );
+
+  showCapturedImage(
+    capturedDataURL
+  );
+
+  predictImage(canvas);
+}
+
+
+/*
+ * ==========================================
+ * 画像読み込み
+ * ==========================================
+ */
+
+function openImagePicker() {
+
+  document.getElementById(
+    "image-input"
+  ).click();
+}
+
+
+function loadImage(event) {
+
+  const file =
+    event.target.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  /*
+   * FileReaderは端末内でファイルを読むだけ。
+   *
+   * ここでサーバーへのアップロードは行わない。
+   */
+
+  const reader =
+    new FileReader();
+
+  reader.onload = function(e) {
+
+    capturedDataURL =
+      e.target.result;
+
+    showCapturedImage(
+      capturedDataURL
+    );
+
+    const image =
+      new Image();
+
+    image.onload = function() {
+
+      predictImage(image);
+
+    };
+
+    image.src =
+      capturedDataURL;
+  };
+
+  reader.readAsDataURL(file);
+
+  event.target.value = "";
+}
+
+
+/*
+ * ==========================================
+ * 画像判定
+ * ==========================================
+ */
+
+async function predictImage(image) {
+
+  try {
+
+    await loadModel();
+
+    const prediction =
+      await model.predict(image);
+
+    showPrediction(
+      prediction
+    );
+
+    setStatus(
+      "画像のAI判定完了"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "画像の判定に失敗しました"
+    );
+  }
+}
+
+
+/*
+ * ==========================================
+ * 写真表示
+ * ==========================================
+ */
+
+function showCapturedImage(dataURL) {
+
+  document.getElementById(
+    "captured-photo"
+  ).src = dataURL;
+
+  document.getElementById(
+    "photo-area"
+  ).style.display = "block";
+}
+
+
+/*
+ * ==========================================
+ * 写真保存
+ * ==========================================
+ */
 
 function downloadPhoto() {
 
   if (!capturedDataURL) {
-
-    alert(
-      "保存する写真がありません。"
-    );
-
     return;
   }
 
@@ -1149,20 +1103,19 @@ function downloadPhoto() {
 }
 
 
-/* =========================================
-   写真削除
-   ========================================= */
+/*
+ * ==========================================
+ * 写真削除
+ * ==========================================
+ */
 
 function deletePhoto() {
 
   capturedDataURL = null;
 
-  const photo =
-    document.getElementById(
-      "captured-photo"
-    );
-
-  photo.removeAttribute("src");
+  document.getElementById(
+    "captured-photo"
+  ).removeAttribute("src");
 
   document.getElementById(
     "photo-area"
@@ -1176,9 +1129,11 @@ function deletePhoto() {
 }
 
 
-/* =========================================
-   認識結果削除
-   ========================================= */
+/*
+ * ==========================================
+ * 結果削除
+ * ==========================================
+ */
 
 function clearResults() {
 
@@ -1198,11 +1153,6 @@ function clearResults() {
 
     labelContainer.innerHTML = "";
 
-    /*
-      AIモデルを再利用するので、
-      結果欄だけ作り直す。
-    */
-
     if (maxPredictions > 0) {
       createResultArea();
     }
@@ -1210,9 +1160,11 @@ function clearResults() {
 }
 
 
-/* =========================================
-   カメラOFF
-   ========================================= */
+/*
+ * ==========================================
+ * カメラOFF
+ * ==========================================
+ */
 
 function stopCamera() {
 
@@ -1234,21 +1186,17 @@ function stopCamera() {
   if (video) {
 
     video.pause();
-
     video.srcObject = null;
+
   }
 
   video = null;
 
   /*
-    写真データを削除
-  */
+   * 一時的な写真データを消去
+   */
 
   capturedDataURL = null;
-
-  /*
-    カメラ画面を初期状態へ
-  */
 
   document.getElementById(
     "webcam-container"
@@ -1257,10 +1205,6 @@ function stopCamera() {
       カメラを起動してください
     </div>
   `;
-
-  /*
-    ボタンを初期状態へ
-  */
 
   document.getElementById(
     "start-button"
@@ -1282,10 +1226,6 @@ function stopCamera() {
     "zoom-controls"
   ).style.display = "none";
 
-  /*
-    写真を消す
-  */
-
   document.getElementById(
     "photo-area"
   ).style.display = "none";
@@ -1294,35 +1234,105 @@ function stopCamera() {
     "captured-photo"
   ).removeAttribute("src");
 
-  /*
-    認識結果を消す
-  */
-
   clearResults();
 
   currentZoom = 1.0;
 
   setStatus(
-    "AIモデルは端末に保持されています。再起動時に再利用できます。"
+    "カメラOFF"
   );
 }
 
 
-/* =========================================
-   ステータス
-   ========================================= */
+/*
+ * ==========================================
+ * ステータス
+ * ==========================================
+ */
 
 function setStatus(text) {
 
-  const status =
-    document.getElementById(
-      "status"
-    );
-
-  if (status) {
-    status.textContent = text;
-  }
+  document.getElementById(
+    "status"
+  ).textContent = text;
 }
+
+
+/*
+ * ==========================================
+ * ボタン
+ * ==========================================
+ */
+
+document.getElementById(
+  "start-button"
+).addEventListener(
+  "click",
+  init
+);
+
+document.getElementById(
+  "switch-button"
+).addEventListener(
+  "click",
+  switchCamera
+);
+
+document.getElementById(
+  "stop-button"
+).addEventListener(
+  "click",
+  stopCamera
+);
+
+document.getElementById(
+  "capture-button"
+).addEventListener(
+  "click",
+  capturePhoto
+);
+
+document.getElementById(
+  "zoom-minus"
+).addEventListener(
+  "click",
+  () => changeZoom(-0.5)
+);
+
+document.getElementById(
+  "zoom-plus"
+).addEventListener(
+  "click",
+  () => changeZoom(0.5)
+);
+
+document.getElementById(
+  "download-button"
+).addEventListener(
+  "click",
+  downloadPhoto
+);
+
+document.getElementById(
+  "delete-photo-button"
+).addEventListener(
+  "click",
+  deletePhoto
+);
+
+document.getElementById(
+  "load-image-button"
+).addEventListener(
+  "click",
+  openImagePicker
+);
+
+document.getElementById(
+  "image-input"
+).addEventListener(
+  "change",
+  loadImage
+);
 
 </script>
 
