@@ -113,6 +113,13 @@ button {
   background: #e2e8f0;
 }
 
+#mirror-button {
+  display: none;
+  background: #e2e8f0;
+  font-size: 18px;
+  padding: 8px;
+}
+
 #stop-button {
   display: none;
   background: #ef4444;
@@ -319,6 +326,10 @@ button {
 🔄 カメラ切り替え
 </button>
 
+<button id="mirror-button" type="button">
+↔️
+</button>
+
 <button id="stop-button" type="button">
 ⛔ カメラOFF
 </button>
@@ -453,7 +464,7 @@ let cameraActive = false;
 let facingMode = "environment";
 
 let currentZoom = 1.0;
-
+let mirrorCamera = false;
 const MIN_ZOOM = 1.0;
 const MAX_ZOOM = 3.0;
 
@@ -608,6 +619,10 @@ async function init() {
     ).style.display = "block";
 
     document.getElementById(
+      "mirror-button"
+    ).style.display = "block";
+
+    document.getElementById(
       "stop-button"
     ).style.display = "block";
 
@@ -652,24 +667,16 @@ async function startCamera() {
   try {
 
     stream =
-      await navigator.mediaDevices
-        .getUserMedia({
+  await navigator.mediaDevices
+    .getUserMedia({
 
-          video: {
-            facingMode: facingMode,
-            width: {
-              ideal: 1280
-            },
-            height: {
-              ideal: 720
-            }
-          },
+      video: true,
 
-          audio: false
+      audio: false
 
-        });
+    });
 
-    video.srcObject = stream;
+video.srcObject = stream;
 
     await video.play();
 
@@ -889,6 +896,18 @@ function updateZoom() {
   }
 }
 
+function toggleMirror() {
+
+  mirrorCamera = !mirrorCamera;
+
+  if (video) {
+    video.style.transform =
+      mirrorCamera
+        ? "scaleX(-1) scale(" + currentZoom + ")"
+        : "scaleX(1) scale(" + currentZoom + ")";
+  }
+
+}
 
 /*
  * ==========================================
@@ -1206,6 +1225,10 @@ function stopCamera() {
   ).style.display = "none";
 
   document.getElementById(
+   "mirror-button"
+  ).style.display = "none";
+
+  document.getElementById(
     "capture-button"
   ).style.display = "none";
 
@@ -1298,6 +1321,13 @@ document.getElementById(
 ).addEventListener(
   "click",
   downloadPhoto
+);
+
+document.getElementById(
+  "mirror-button"
+).addEventListener(
+  "click",
+  toggleMirror
 );
 
 document.getElementById(
